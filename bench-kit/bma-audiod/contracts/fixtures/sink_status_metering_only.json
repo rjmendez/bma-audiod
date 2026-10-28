@@ -1,0 +1,18 @@
+{
+ "t": 1792884000.0,
+ "device": null,
+ "audio_output": false,
+ "device_error": "'CABLE In 16ch (VB-Audio Virtual Cable)' is configured for 2 channel(s), need 16: set its default format to 16 channels, 24 bit, 48000 Hz",
+ "datagrams": 144000,
+ "bad": 0,
+ "rx_errors": 0,
+ "buffered_ms": 0,
+ "underruns": 0,
+ "slips": 2,
+ "slipped_frames": 14400,
+ "missing_slot_blocks": 0,
+ "holes": 41,
+ "playing": false,
+ "data_frames": 141,
+ "data_dropped": 0
+}

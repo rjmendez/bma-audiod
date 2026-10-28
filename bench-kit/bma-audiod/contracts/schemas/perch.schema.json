@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:perch",
+  "title": "perch records (analysis/perch.jsonl)",
+  "description": "Records of the analyzer's `perch` shadow plugin (analysis/perch.py): Google Perch 2.0 run beside BirdNET on 5 s windows, metadata only. `perch`: one record per window and source (`mixed` = the mean of the 8 beams, `loudest` = the beam with the highest RMS) holding the top-5 labels with their raw logits. `perch_agreement`: one record per UTC minute comparing Perch's best species with BirdNET's on the same windows. Windows the tagger flagged as speech, windows below the -70 dBFS gate and windows with a human-voice label in the top 5 produce no record at all. No audio is ever stored; embeddings only with --perch-embeddings and then in separate files, never in these records. Receivers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.1.0",
+  "x-discriminator": {"field": "k", "map": {"perch": "perch", "perch_agreement": "perch_agreement"}},
+  "x-files": {"perch.jsonl": ["perch", "perch_agreement"]},
+  "oneOf": [{"$ref": "#/$defs/perch"}, {"$ref": "#/$defs/perch_agreement"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "label_logit": {"type": "array", "prefixItems": [{"type": "string", "minLength": 1}, {"type": "number"}], "items": false, "minItems": 2, "maxItems": 2},
+    "group": {"type": "string", "description": "Group of a label: `bird`, `insect`, `amphibian`, `mammal`, `other-bio` (a binomial whose genus ui/taxa.json does not list), `non_species` (a non-species class of Perch's list such as `Alarm`, `Wind_chime`), `unknown` (no taxa table). The table lists only 19 insect genera, so `insect` undercounts: the non-species classes `Insect` and `Cricket` also map to it.",
+              "enum": ["bird", "insect", "amphibian", "mammal", "other-bio", "non_species", "unknown"]},
+    "perch": {
+      "type": "object",
+      "required": ["k", "v", "t", "src", "beam", "level_dbfs", "top", "top1_group", "best_species", "mv", "run", "emb_i"],
+      "properties": {
+        "k": {"const": "perch"},
+        "v": {"const": 1, "description": "Record format major version."},
+        "t": {"type": "number", "minimum": 0, "description": "End of the 5 s window, PC wall-clock Unix seconds (as in every analysis record)."},
+        "src": {"enum": ["mixed", "loudest"], "description": "Which signal was classified: `mixed` = arithmetic mean of the 8 beams' waveforms, `loudest` = the single beam with the highest RMS of the window. Both go through 48 kHz -> 32 kHz polyphase resampling and the Perch peak normalisation (mean removed, peak 0.25). The two records of one window have the same `t`."},
+        "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8, "description": "1-based beam of a `loudest` record; null for `mixed`."},
+        "level_dbfs": {"type": "number", "maximum": 0, "description": "RMS level of the classified signal before normalisation, dB re full scale, one decimal. The loudest beam of every window is at or above the -70 dBFS gate."},
+        "top": {"type": "array", "items": {"$ref": "#/$defs/label_logit"}, "minItems": 5, "maxItems": 5, "description": "The five largest logits, largest first, ties by lower label index, logit rounded to 3 decimals: [label, logit]. Labels are the entries of Perch's label list (iNaturalist-taxonomy binomials and FSD50k classes). The logits are RAW and uncalibrated: they are not probabilities and are not comparable between species or models. Human-voice labels never appear here."},
+        "top1_group": {"$ref": "#/$defs/group", "description": "Group of top[0]."},
+        "best_species": {"type": ["array", "null"], "if": {"type": "array"}, "then": {"$ref": "#/$defs/label_logit"}, "description": "[label, logit] of the highest-logit SPECIES label (a binomial) over the whole label list, whether or not it is in `top`; null only when the label list has no binomial."},
+        "mv": {"type": "string", "pattern": "^.+@[0-9a-f]{12}$", "description": "Model version: the model file's base name, `@`, the first 12 hex digits of its sha256."},
+        "run": {"type": ["integer", "null"], "description": "The analyzer's run id (integer start time), as on novelty rows; null when unknown."},
+        "emb_i": {"type": ["integer", "null"], "minimum": 0, "description": "Index of this record's embedding in perch_emb.jsonl / perch_emb.f16 (see the spec); null unless the analyzer ran with --perch-embeddings (or the write failed)."},
+        "model": {"type": "object", "required": ["name", "version", "variant", "sha256"], "description": "1.1.0, optional. name Perch, version 2.0, variant = src, sha256 = of the model file (mv carries its first 12 digits).",
+                  "properties": {"name": {"type": "string", "minLength": 1}, "version": {"type": ["string", "null"]}, "variant": {"type": ["string", "null"]}, "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}},
+        "claim": {"type": "object", "required": ["human_verified", "source"], "description": "1.1.0, optional. human_verified always false, source always model_opinion.",
+                  "properties": {"human_verified": {"const": false}, "source": {"const": "model_opinion"}}},
+        "max_unstored_score": {"type": ["number", "null"], "description": "1.1.0, optional. The 6th largest logit (best label not in `top`, which is the top_k)."}
+      }
+    },
+    "perch_agreement": {
+      "type": "object",
+      "required": ["k", "v", "t", "mv", "min_logit", "windows", "both_same_species", "both_same_genus", "both_differ", "perch_only", "birds_only", "both_silent", "birds_missing", "perch_top1_groups", "insect"],
+      "properties": {
+        "k": {"const": "perch_agreement"},
+        "v": {"const": 1},
+        "t": {"type": "number", "minimum": 0, "description": "Start of the UTC minute (a multiple of 60); a Perch window belongs to the minute its END falls in."},
+        "mv": {"type": "string", "pattern": "^.+@[0-9a-f]{12}$"},
+        "min_logit": {"type": "number", "description": "The --perch-min-logit in force: Perch names a species when its best_species logit is at least this."},
+        "partial": {"const": true, "description": "Optional, present only when true: written at shutdown before the minute's grace period (15 s after its end) had passed, so late BirdNET windows may be missing."},
+        "windows": {"$ref": "#/$defs/count", "description": "Perch windows (not records) of the minute that were written to perch.jsonl; windows = the sum of the seven category counts."},
+        "both_same_species": {"$ref": "#/$defs/count"}, "both_same_genus": {"$ref": "#/$defs/count"}, "both_differ": {"$ref": "#/$defs/count"},
+        "perch_only": {"$ref": "#/$defs/count"}, "birds_only": {"$ref": "#/$defs/count"}, "both_silent": {"$ref": "#/$defs/count"},
+        "birds_missing": {"$ref": "#/$defs/count", "description": "No BirdNET window overlapping the Perch window by at least 2 s that classified a beam: BirdNET has no opinion (gated, dropped, late, or the plugin is off). This is not silence."},
+        "perch_top1_groups": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}, "propertyNames": {"enum": ["bird", "insect", "amphibian", "mammal", "other-bio", "non_species", "unknown"]},
+                              "description": "Windows per group of the top-1 label of the `loudest` source; the counts sum to `windows`."},
+        "insect": {"type": "object", "required": ["perch", "birds", "both"], "additionalProperties": false,
+                   "properties": {"perch": {"$ref": "#/$defs/count"}, "birds": {"$ref": "#/$defs/count"}, "both": {"$ref": "#/$defs/count"}},
+                   "description": "Windows whose Perch top-1 group is insect; windows whose BirdNET top species has group insect (windows with a BirdNET opinion only); windows where both hold."}
+      }
+    }
+  }
+}

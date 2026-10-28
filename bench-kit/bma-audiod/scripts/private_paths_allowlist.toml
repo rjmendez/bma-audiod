@@ -1,0 +1,24 @@
+# Allowlist for scripts/check_private_paths.py. It can only shrink: each counted entry must match exactly `count`
+# findings and every entry must match something, otherwise the check fails.
+# Two groups: (1) bma-audiod, kept on purpose with a reason; (2) files outside bench-kit/bma-audiod (the bench kit's own
+# lab scripts and notes), not part of the bma-audiod cleanup, listed so the owner can decide.
+
+
+[[allow]]
+path = "bench-kit/bma-audiod/analysis/test_meta_history.py"
+categories = ["coords"]
+count = 4
+reason = "synthetic coordinates chosen for the test (it proves they are never stored), not a real place"
+
+[[allow]]
+path = "bench-kit/bma-audiod/classify/test_geo.py"
+categories = ["coords"]
+count = 15
+reason = "synthetic coordinates chosen for the test (it proves the cell rounding and that nothing finer is logged), not a real place"
+
+[[allow]]
+path = "bench-kit/bma-audiod/contracts/test_contracts.py"
+categories = ["coords"]
+count = 5
+reason = "synthetic coordinates in schema rejection cases (a location must be rejected), not a real place"
+

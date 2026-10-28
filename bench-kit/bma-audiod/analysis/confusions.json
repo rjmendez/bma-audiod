@@ -1,0 +1,15 @@
+{
+  "Golden-fronted Woodpecker": {
+    "evidence": {
+      "co_occurring": 18,
+      "min_confidence": 0.7,
+      "reports": 21,
+      "share": 0.8571,
+      "window_s": 5.0
+    },
+    "likely_as": "Red-bellied Woodpecker",
+    "likely_as_scientific": "Melanerpes carolinus",
+    "scientific": "Melanerpes aurifrons",
+    "source": "co-occurrence within 5 s"
+  }
+}

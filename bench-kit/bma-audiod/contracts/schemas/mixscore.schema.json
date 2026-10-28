@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:mixscore",
+  "title": "mixscore records (analysis/mixscore.jsonl)",
+  "description": "Output of the opt-in analyzer plugin `mixscore` (analysis/mixscore.py, host.py --mixscore): BirdNET run on the 8-beam mean mix of each 3 s window, next to the per-beam `birds` plugin. `mixscore` = one window with at least one mix detection; `mixscore_compare` = one record per UTC minute comparing the per-beam events of the birds plugin with the mix events (definitions in specs/mixscore.md). Metadata only: no audio, no embeddings, no location. Windows the tagger flagged as speech produce no record and no count by species; human-voice labels are never written. The discriminator is `type` (new JSONL interfaces use `type`). Receivers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "type", "map": {"mixscore": "mixscore", "mixscore_compare": "mixscore_compare"}},
+  "x-files": {"mixscore.jsonl": ["mixscore", "mixscore_compare"]},
+  "oneOf": [{"$ref": "#/$defs/mixscore"}, {"$ref": "#/$defs/mixscore_compare"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "unit": {"type": "number", "minimum": 0, "maximum": 1},
+    "forbidden_keys": {
+      "description": "Privacy: a record never carries audio, an embedding or a location.",
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]},
+                        {"required": ["audio"]}, {"required": ["emb"]}, {"required": ["embedding"]}, {"required": ["samples"]}]}
+    },
+    "detection": {
+      "type": "object",
+      "required": ["common", "scientific", "confidence", "in_region", "non_species", "group"],
+      "properties": {
+        "common": {"type": ["string", "null"]},
+        "scientific": {"type": ["string", "null"]},
+        "confidence": {"$ref": "#/$defs/unit"},
+        "in_region": {"type": ["boolean", "null"], "description": "Same meaning as in analysis-records `bird`: null when the geo filter is off or cannot judge the label."},
+        "non_species": {"type": "boolean"},
+        "group": {"type": ["string", "null"], "description": "ui/taxa.json group stamp (bird, insect, amphibian, mammal, mechanical, other-bio) or null when the table is missing."}
+      }
+    },
+    "mixscore": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/forbidden_keys"}],
+      "required": ["type", "v", "t", "level_dbfs", "mix_dbfs", "mix_gain_db", "n_filtered", "top"],
+      "properties": {
+        "type": {"const": "mixscore"},
+        "v": {"const": 1},
+        "t": {"type": "number", "minimum": 0, "description": "Window end, Unix seconds (the plugin clock, same as birds `t`)."},
+        "level_dbfs": {"type": "number", "description": "RMS level of the loudest beam (the gate quantity)."},
+        "mix_dbfs": {"type": "number", "description": "RMS level of the scored mix."},
+        "mix_gain_db": {"type": "number", "minimum": 0, "maximum": 9.04, "description": "Gain applied to the plain 8-beam mean so the mix has the mean beam power: 0 for identical beams, 20 log10 sqrt(8) = 9.03 dB for uncorrelated beams (the cap)."},
+        "n_filtered": {"$ref": "#/$defs/count", "description": "Detections the location filter removed from this window's mix result (names are not recorded)."},
+        "top": {"type": "array", "minItems": 1, "maxItems": 5, "items": {"$ref": "#/$defs/detection"}, "description": "Mix detections at or above min_conf, highest confidence first, at most 5; human labels removed."}
+      }
+    },
+    "group_counts": {"type": "object", "required": ["both", "beam_only", "mix_only"],
+                     "properties": {"both": {"$ref": "#/$defs/count"}, "beam_only": {"$ref": "#/$defs/count"}, "mix_only": {"$ref": "#/$defs/count"}}},
+    "mixscore_compare": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/forbidden_keys"}],
+      "required": ["type", "v", "t", "interval_s", "min_conf", "windows", "events", "both_conf", "groups", "mix_gain_db_mean"],
+      "properties": {
+        "type": {"const": "mixscore_compare"},
+        "v": {"const": 1},
+        "t": {"type": "integer", "minimum": 0, "multipleOf": 60, "description": "Start of the UTC minute (Unix seconds); a window belongs to the minute its end time falls in."},
+        "interval_s": {"const": 60},
+        "min_conf": {"$ref": "#/$defs/unit"},
+        "partial": {"const": true, "description": "Present (true) only for a minute flushed at shutdown before its grace period ended."},
+        "windows": {
+          "type": "object",
+          "required": ["gated", "scored", "paired", "unpaired", "dropped_speech", "dropped_unknown"],
+          "properties": {"gated": {"$ref": "#/$defs/count"}, "scored": {"$ref": "#/$defs/count"}, "paired": {"$ref": "#/$defs/count"},
+                         "unpaired": {"$ref": "#/$defs/count"}, "dropped_speech": {"$ref": "#/$defs/count"}, "dropped_unknown": {"$ref": "#/$defs/count"}}
+        },
+        "events": {"$ref": "#/$defs/group_counts"},
+        "both_conf": {
+          "type": "object",
+          "required": ["n", "best_beam_mean", "mix_mean", "diff_mean", "mix_higher"],
+          "properties": {"n": {"$ref": "#/$defs/count"},
+                         "best_beam_mean": {"oneOf": [{"$ref": "#/$defs/unit"}, {"type": "null"}]},
+                         "mix_mean": {"oneOf": [{"$ref": "#/$defs/unit"}, {"type": "null"}]},
+                         "diff_mean": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
+                         "mix_higher": {"$ref": "#/$defs/count"}}
+        },
+        "groups": {"type": "object", "additionalProperties": {"$ref": "#/$defs/group_counts"}},
+        "mix_gain_db_mean": {"type": ["number", "null"], "minimum": 0, "maximum": 9.04}
+      }
+    }
+  }
+}

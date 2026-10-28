@@ -1,0 +1,7 @@
+audioread==3.1.0
+birdnetlib==0.18.1
+librosa==1.0.0
+numpy==2.5.3
+resampy==0.4.3
+soundfile==0.14.0
+tensorflow-cpu==2.21.0

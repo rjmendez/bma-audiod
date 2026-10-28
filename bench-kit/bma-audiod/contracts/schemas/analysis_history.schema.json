@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:analysis-history",
+  "title": "analyzer long-retention history (<data-dir>/history)",
+  "description": "Metadata the analyzer keeps beyond the raw analysis\\*.jsonl retention: the configuration it ran with, hourly rollups of the dsp and spatial streams, and a per-UTC-day summary with effort denominators. Written by analysis/host.py (analysis/runmeta.py, rollup.py, daily.py). Metadata only; no audio and no location is ever stored. Receivers MUST ignore unknown fields.",
+  "x-contract-version": "1.1.0",
+  "x-discriminator": {"field": "k", "map": {"analysis_config": "analysis_config", "hourly_rollup": "hourly_rollup", "daily_summary": "daily_summary"}},
+  "x-files": {
+    "config_history.jsonl": ["analysis_config"],
+    "hourly_rollup.jsonl": ["hourly_rollup"]
+  },
+  "oneOf": [{"$ref": "#/$defs/analysis_config"}, {"$ref": "#/$defs/hourly_rollup"}, {"$ref": "#/$defs/daily_summary"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "beam8_int": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 8, "maxItems": 8},
+    "beam8_num": {"type": "array", "items": {"type": "number"}, "minItems": 8, "maxItems": 8},
+    "sha12": {"type": ["string", "null"], "pattern": "^[0-9a-f]{12}$"},
+    "analysis_config": {
+      "description": "Written at analyzer start and again whenever the content fingerprint changes (mask file content, calibration file, geo file, model versions). `run_id` is the integer Unix start time of the analyzer run (also stamped as `run` on novelty rows). `mask.sha12` hashes the lines and tolerance, not the path. `calibration.source` is `absent` unless a dspd-shaped file (default analysis/calibration.json or $BMA_CALIBRATION_FILE) exists: the board's stored calibration is not reachable from the analyzer. `geo` carries ONLY on/week/threshold: never a coordinate, not even a county cell, not a hash of one.",
+      "type": "object",
+      "required": ["k", "v", "t", "run_id", "app_version", "mask", "calibration", "geo", "models", "device"],
+      "properties": {
+        "k": {"const": "analysis_config"}, "v": {"const": 1}, "t": {"type": "number", "minimum": 0},
+        "run_id": {"type": "integer", "minimum": 0},
+        "app_version": {"type": ["string", "null"]},
+        "mask": {"type": "object", "required": ["path_set", "sha12", "n_lines", "tol_hz", "version"],
+                 "properties": {"path_set": {"type": "boolean"}, "sha12": {"$ref": "#/$defs/sha12"}, "n_lines": {"$ref": "#/$defs/count"},
+                                "tol_hz": {"type": ["number", "null"]}, "version": {"type": ["integer", "string", "null"]}, "error": {"type": "string"}}},
+        "calibration": {"type": "object", "required": ["source"],
+                        "properties": {"source": {"enum": ["absent", "file"]}, "sha12": {"$ref": "#/$defs/sha12"},
+                                       "azimuth_deg": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 8, "maxItems": 8},
+                                       "north_reference": {"type": ["string", "null"]}, "measured_at": {"type": ["string", "null"]}, "error": {"type": "string"}}},
+        "geo": {"type": "object", "required": ["on", "week", "threshold"],
+                "properties": {"on": {"type": "boolean"}, "week": {"type": ["integer", "null"]}, "threshold": {"type": ["number", "null"]}, "error": {"type": "string"}},
+                "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["cell_sha12"]}]}},
+        "models": {"type": "object", "required": ["birdnetlib", "panns", "clap", "torch", "sklearn", "novelty"],
+                   "properties": {"birdnetlib": {"type": ["string", "null"]}, "panns": {"type": "object"}, "panns_inference": {"type": ["string", "null"]},
+                                  "clap": {"type": "string"}, "transformers": {"type": ["string", "null"]}, "torch": {"type": ["string", "null"]},
+                                  "sklearn": {"type": ["string", "null"]},
+                                  "novelty": {"type": "object", "required": ["k", "mv"], "properties": {"k": {"type": "integer"}, "mv": {"type": ["string", "null"]}}}}},
+        "device": {"type": "string"},
+        "beam_shift": {"description": "Optional (1.1.0). host.py --beam-shift: per-beam integer sample shift, k = read the beam k samples later in the ring (k=+1 advances a beam that arrives one sample late). Absent = no correction.",
+                       "type": "array", "items": {"type": "integer", "minimum": -4, "maximum": 4}, "minItems": 8, "maxItems": 8}
+      }
+    },
+    "hourly_rollup": {
+      "description": "One record per closed UTC hour (closed at hour end + 120 s; appended once, never rewritten). Means are per-window means. `tonal.lines` is the top 30 lines by duration (4 Hz bins). `beam` of a line is its most frequent confident attribution (null when none); the array is nearly omni, so attribution is weak. `electronic_line_s` = tonal_state line-appearances flagged electronic x 10 s. `spatial.decorr_mean` is the mean of the unvalidated cross-beam decorrelation proxy.",
+      "type": "object",
+      "required": ["k", "v", "kind", "hour_s", "windows", "rms_dbfs_mean", "band_pct_mean", "centroid_hz_mean", "noise_floor_db", "transients", "tonal", "spatial"],
+      "properties": {
+        "k": {"const": "hourly_rollup"}, "v": {"const": 1}, "kind": {"const": "dsp"},
+        "hour_s": {"type": "integer", "minimum": 0, "multipleOf": 3600},
+        "windows": {"$ref": "#/$defs/count"},
+        "rms_dbfs_mean": {"$ref": "#/$defs/beam8_num"},
+        "band_pct_mean": {"type": "array", "items": {"type": "number"}, "minItems": 5, "maxItems": 5},
+        "centroid_hz_mean": {"type": "number", "minimum": 0},
+        "noise_floor_db": {"type": ["object", "null"], "required": ["min", "p50", "max"], "properties": {"min": {"type": "number"}, "p50": {"type": "number"}, "max": {"type": "number"}}},
+        "transients": {"type": "object", "required": ["n", "by_loudest_beam", "excess_db_max"],
+                       "properties": {"n": {"$ref": "#/$defs/count"}, "by_loudest_beam": {"$ref": "#/$defs/beam8_int"}, "excess_db_max": {"type": "number"}}},
+        "tonal": {"type": "object", "required": ["appeared_n", "gone_n", "state_n", "electronic_line_s", "lines"],
+                  "properties": {"appeared_n": {"$ref": "#/$defs/count"}, "gone_n": {"$ref": "#/$defs/count"}, "state_n": {"$ref": "#/$defs/count"},
+                                 "electronic_line_s": {"$ref": "#/$defs/count"},
+                                 "lines": {"type": "array", "maxItems": 30,
+                                           "items": {"type": "object", "required": ["bin_hz", "state_n", "appeared_n", "gone_n", "dur_s_total", "beam", "beam_n", "electronic"],
+                                                     "properties": {"bin_hz": {"type": "integer", "minimum": 0, "maximum": 24000}, "state_n": {"$ref": "#/$defs/count"},
+                                                                    "appeared_n": {"$ref": "#/$defs/count"}, "gone_n": {"$ref": "#/$defs/count"},
+                                                                    "dur_s_total": {"type": "number", "minimum": 0},
+                                                                    "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8},
+                                                                    "beam_n": {"$ref": "#/$defs/count"}, "electronic": {"type": "boolean"}}}}}},
+        "spatial": {"type": "object", "required": ["windows", "directional_n", "leader_count", "rel_mean_db", "decorr_mean"],
+                    "properties": {"windows": {"$ref": "#/$defs/count"}, "directional_n": {"$ref": "#/$defs/count"}, "leader_count": {"$ref": "#/$defs/beam8_int"},
+                                   "rel_mean_db": {"$ref": "#/$defs/beam8_num"}, "decorr_mean": {"type": ["number", "null"], "minimum": 0, "maximum": 1}}}
+      }
+    },
+    "daily_summary": {
+      "description": "The whole file daily_summary.json (rewritten atomically about every 60 s and at exit; loaded at start and added to, so a restart does not double a day). Keys of `days` are UTC dates YYYYMMDD; at most 400 days are kept. `audio_s` = dsp windows x 1 s. `ring_reset_s` = status ticks (5 s) with no contiguous audio. `birds_windows` / `birds_no_beam_over_gate` give the effort denominator of detections. `rx_*` are summed per-run deltas of the analyzer's rx counters (`rx_gaps` sums the 8 ring counters: divide by 8 for loss events).",
+      "type": "object",
+      "required": ["k", "v", "days"],
+      "properties": {
+        "k": {"const": "daily_summary"}, "v": {"const": 1},
+        "days": {"type": "object", "maxProperties": 400, "propertyNames": {"pattern": "^[0-9]{8}$"},
+                 "additionalProperties": {"type": "object",
+                                          "required": ["restarts", "windows", "records", "errors", "dropped", "audio_s", "ring_reset_s", "birds_windows", "birds_no_beam_over_gate",
+                                                       "tags_speech_suppressed", "spatial_directional", "rx_datagrams", "rx_bad", "rx_gaps", "uptime_s"],
+                                          "properties": {"restarts": {"$ref": "#/$defs/count"},
+                                                         "windows": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}},
+                                                         "records": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}},
+                                                         "errors": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}},
+                                                         "dropped": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}},
+                                                         "audio_s": {"type": "number", "minimum": 0}, "ring_reset_s": {"type": "number", "minimum": 0},
+                                                         "birds_windows": {"$ref": "#/$defs/count"}, "birds_no_beam_over_gate": {"$ref": "#/$defs/count"},
+                                                         "tags_speech_suppressed": {"$ref": "#/$defs/count"}, "spatial_directional": {"$ref": "#/$defs/count"},
+                                                         "rx_datagrams": {"$ref": "#/$defs/count"}, "rx_bad": {"$ref": "#/$defs/count"}, "rx_gaps": {"$ref": "#/$defs/count"},
+                                                         "uptime_s": {"type": "number", "minimum": 0}}}}
+      }
+    }
+  }
+}

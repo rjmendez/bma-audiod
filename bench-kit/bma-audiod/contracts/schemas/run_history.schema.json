@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:run-history",
+  "title": "run history files (<data-dir>/history)",
+  "description": "Append-only, size-capped JSONL files of METADATA about the pipeline itself, so that restarts, stream holes and board reboots become data points instead of gaps in a log. One JSON object per line; every record has `k` (kind), `v` (record version, 1) and `t` (Unix seconds on the PC clock). Metadata only: no audio, no location. Each file rotates at its size cap to FILE.1 (one backup), so the total disk use is bounded (sink_history 32 MB, analyzer_history 48 MB, board_history 16 MB, run_ledger 16 MB, times two). Counters are cumulative since the producer's start: a reader takes deltas and treats a changed `started_t` / `started` as a counter reset. Readers MUST ignore unknown fields and unknown kinds.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"sink_sample": "sink_sample", "analyzer_sample": "analyzer_sample", "board_sample": "board_sample", "board_boot": "board_boot", "run_event": "run_event"}},
+  "x-files": {
+    "sink_history.jsonl": ["sink_sample"],
+    "analyzer_history.jsonl": ["analyzer_sample"],
+    "board_history.jsonl": ["board_sample", "board_boot"],
+    "run_ledger.jsonl": ["run_event"]
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/sink_sample"}, {"$ref": "#/$defs/analyzer_sample"}, {"$ref": "#/$defs/board_sample"},
+    {"$ref": "#/$defs/board_boot"}, {"$ref": "#/$defs/run_event"}
+  ],
+  "$defs": {
+    "unix_s": {"type": "number", "minimum": 0, "description": "Unix seconds (float, PC clock)."},
+    "count": {"type": "integer", "minimum": 0},
+    "sink_sample": {
+      "description": "sink_history.jsonl: one record per sink stats interval (30 s) from pc/bma_cable_sink.py: the sink_status.json fields that matter for stream health, cumulative since the sink process started at `started_t`.",
+      "type": "object",
+      "required": ["k", "v", "t", "started_t", "holes", "slips", "slipped_frames", "underruns", "missing_slot_blocks", "data_dropped", "data_frames", "playing", "audio_output", "device_error", "buffered_ms", "datagrams", "bad"],
+      "properties": {
+        "k": {"const": "sink_sample"}, "v": {"const": 1}, "t": {"$ref": "#/$defs/unix_s"},
+        "started_t": {"$ref": "#/$defs/unix_s", "description": "Start time of the sink process; a change means the counters restarted from 0."},
+        "holes": {"$ref": "#/$defs/count", "description": "Holes in the aligned 8-beam stream (a slot block missing past the reorder window)."},
+        "slips": {"$ref": "#/$defs/count"}, "slipped_frames": {"$ref": "#/$defs/count"},
+        "underruns": {"$ref": "#/$defs/count"}, "missing_slot_blocks": {"$ref": "#/$defs/count"},
+        "data_dropped": {"$ref": "#/$defs/count"}, "data_frames": {"$ref": "#/$defs/count"},
+        "playing": {"type": "boolean", "description": "Instantaneous: the ring is past its prebuffer and playing."},
+        "audio_output": {"type": "boolean", "description": "Instantaneous: the 16-channel stream is open."},
+        "device_error": {"type": ["string", "null"]},
+        "buffered_ms": {"$ref": "#/$defs/count"}, "datagrams": {"$ref": "#/$defs/count"}, "bad": {"$ref": "#/$defs/count"}
+      }
+    },
+    "analyzer_sample": {
+      "description": "analyzer_history.jsonl: one record per 30 s from analysis/host.py (status.json every 5 s, a compact sample of it every 30 s). `rx.gaps` is the SUM of the eight per-ring gap counters: divide by 8 for the number of loss events (the bridge counts each loss once). `plugins` maps an enabled plugin with counters to [windows, records, errors, dropped], cumulative since `started`; plugins without counters (novelty) and disabled ones are left out.",
+      "type": "object",
+      "required": ["k", "v", "t", "started", "uptime_s", "rx", "contiguous_s", "plugins", "embeddings_stored", "device"],
+      "properties": {
+        "k": {"const": "analyzer_sample"}, "v": {"const": 1}, "t": {"$ref": "#/$defs/unix_s"},
+        "started": {"$ref": "#/$defs/unix_s", "description": "Analyzer process start; a change means the counters restarted from 0."},
+        "uptime_s": {"type": ["number", "null"], "minimum": 0},
+        "rx": {"type": "object", "required": ["datagrams", "bad", "gaps"], "properties": {"datagrams": {"$ref": "#/$defs/count"}, "bad": {"$ref": "#/$defs/count"}, "gaps": {"$ref": "#/$defs/count"}}},
+        "contiguous_s": {"type": ["number", "null"], "minimum": 0, "description": "Seconds of aligned audio all eight rings currently hold."},
+        "plugins": {"type": "object", "additionalProperties": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/count"}}},
+        "embeddings_stored": {"type": ["integer", "null"], "minimum": 0},
+        "device": {"type": ["string", "null"]}
+      }
+    },
+    "board_sample": {
+      "description": "board_history.jsonl: one record per @health record (about one a minute) that tools/bma_debug_rx.py already receives from the board; no board write, no extra socket. `boot_t` = host_t - up is derived and drifts by seconds per day (the board clock is free-running): never compare it exactly, use `boot_id` (fixed for the whole boot) to group samples.",
+      "type": "object",
+      "required": ["k", "v", "t", "up", "boot_t", "boot_id", "temp_local_c", "temp_remote_c", "load1", "memfree_kb", "seq"],
+      "properties": {
+        "k": {"const": "board_sample"}, "v": {"const": 1}, "t": {"$ref": "#/$defs/unix_s", "description": "PC time at receipt (the health record's host_t)."},
+        "up": {"type": "number", "minimum": 0, "description": "Board uptime, seconds."},
+        "boot_t": {"type": "number", "description": "t - up: the PC-clock time the board booted, as seen at this sample."},
+        "boot_id": {"type": "integer", "description": "int(boot_t) at the first sample of this boot; identical on every sample of the boot."},
+        "temp_local_c": {"type": ["number", "null"]}, "temp_remote_c": {"type": ["number", "null"], "description": "null when the board could not read the sensor."},
+        "load1": {"type": ["number", "null"], "minimum": 0, "description": "1-minute load average."},
+        "memfree_kb": {"type": ["integer", "null"], "minimum": 0},
+        "seq": {"type": ["integer", "null"], "minimum": 0, "description": "Datagram sequence of the health record."}
+      }
+    },
+    "board_boot": {
+      "description": "board_history.jsonl: written immediately before the first board_sample of a boot. A reboot is detected when the uptime falls by more than 1 s, or, on the first sample after the collector restarted, when boot_t differs from the last stored boot_t by more than 120 s. The very first record ever has null prev_* and gap_s.",
+      "type": "object",
+      "required": ["k", "v", "t", "boot_id", "boot_t", "prev_boot_id", "prev_last_up", "gap_s"],
+      "properties": {
+        "k": {"const": "board_boot"}, "v": {"const": 1}, "t": {"$ref": "#/$defs/unix_s"},
+        "boot_id": {"type": "integer"}, "boot_t": {"type": "number"},
+        "prev_boot_id": {"type": ["integer", "null"]},
+        "prev_last_up": {"type": ["number", "null"], "minimum": 0, "description": "Last uptime seen before the reboot: the previous boot's lifetime lower bound."},
+        "gap_s": {"type": ["number", "null"], "minimum": 0, "description": "Seconds between the last sample of the previous boot and this one (the outage is somewhere inside it)."}
+      }
+    },
+    "run_event": {
+      "description": "run_ledger.jsonl: appended by the supervisor (pc/run_pipeline.ps1 through pc/run_ledger.ps1). `ev` start | exit | supervisor_up | suppressed. `exit_code` is null with `exit_code_known` false when Windows reported none; 0 is a real exit code. A crash loop is bounded: at most 60 start/exit events per process per UTC hour are written, the rest are summarised by one `suppressed` record (with `count`) when the hour has passed. `version` is the first line of app\\VERSION at the time of the event (null when the file is unreadable).",
+      "type": "object",
+      "required": ["k", "v", "t", "proc", "ev", "pid", "exit_code", "exit_code_known", "uptime_s", "version"],
+      "properties": {
+        "k": {"const": "run_event"}, "v": {"const": 1}, "t": {"$ref": "#/$defs/unix_s"},
+        "proc": {"type": "string", "minLength": 1, "description": "analysis | classifier | bridge | board_debug | sink | ui | ambient | supervisor (open set)."},
+        "ev": {"enum": ["start", "exit", "supervisor_up", "suppressed"]},
+        "pid": {"type": ["integer", "null"], "minimum": 0},
+        "exit_code": {"type": ["integer", "null"]},
+        "exit_code_known": {"type": "boolean"},
+        "uptime_s": {"type": ["number", "null"], "minimum": 0, "description": "On exit: seconds the process ran, when Windows knew its start and exit time."},
+        "count": {"type": "integer", "minimum": 1, "description": "Only on `suppressed`: events dropped for this process in that hour."},
+        "version": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"ev": {"const": "suppressed"}}, "required": ["ev"]}, "then": {"required": ["count"]}},
+        {"if": {"properties": {"exit_code_known": {"const": false}}, "required": ["exit_code_known"]}, "then": {"properties": {"exit_code": {"const": null}}}},
+        {"if": {"properties": {"exit_code_known": {"const": true}}, "required": ["exit_code_known"]}, "then": {"properties": {"exit_code": {"type": "integer"}}}}
+      ]
+    }
+  }
+}

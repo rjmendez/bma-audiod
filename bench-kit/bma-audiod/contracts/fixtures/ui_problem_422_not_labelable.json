@@ -1,0 +1,8 @@
+{
+ "type": "urn:bma-ui:problem:not_labelable",
+ "title": "Not labelable",
+ "status": 422,
+ "code": "not_labelable",
+ "detail": "not_labelable",
+ "param": "event_id"
+}

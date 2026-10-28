@@ -1,0 +1,6 @@
+{"k":"board_boot","v":1,"t":1792884000.0,"boot_id":1792753089,"boot_t":1792753089.28,"prev_boot_id":null,"prev_last_up":null,"gap_s":null}
+{"k":"board_sample","v":1,"t":1792884000.0,"up":130910.72,"boot_t":1792753089.28,"boot_id":1792753089,"temp_local_c":40.0,"temp_remote_c":41.75,"load1":0.32,"memfree_kb":6372,"seq":10778}
+{"k":"board_sample","v":1,"t":1792884060.0,"up":130970.72,"boot_t":1792753089.28,"boot_id":1792753089,"temp_local_c":40.0,"temp_remote_c":41.38,"load1":0.32,"memfree_kb":6372,"seq":10779}
+{"k":"board_boot","v":1,"t":1792884300.0,"boot_id":1792884287,"boot_t":1792884287.5,"prev_boot_id":1792753089,"prev_last_up":130970.72,"gap_s":240.0}
+{"k":"board_sample","v":1,"t":1792884300.0,"up":12.5,"boot_t":1792884287.5,"boot_id":1792884287,"temp_local_c":null,"temp_remote_c":null,"load1":1.05,"memfree_kb":9120,"seq":0}
+{"k":"board_sample","v":1,"t":1792884360.0,"up":72.5,"boot_t":1792884287.5,"boot_id":1792884287,"temp_local_c":38.25,"temp_remote_c":39.0,"load1":0.55,"memfree_kb":8800,"seq":1}

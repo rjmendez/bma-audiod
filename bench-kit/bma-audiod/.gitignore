@@ -1,0 +1,11 @@
+# machine-specific local overrides (templates: pc/bma.local.example.ps1, .env.example, classify/geo_county.example.json)
+pc/bma.local.ps1
+.env
+classify/geo_county.local.json
+# runtime data and models
+data/
+models/
+# owner-specific names for scripts/check_private_paths.py (one regex per line)
+scripts/private_names.txt
+# docker build --output destination
+out/

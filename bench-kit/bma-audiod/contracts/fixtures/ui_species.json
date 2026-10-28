@@ -1,0 +1,381 @@
+{
+ "since_s": 1792947600.0,
+ "until_s": 1792951800.0,
+ "in_region": "true",
+ "non_species": "false",
+ "group": "any",
+ "artifact": "any",
+ "frame": "array frame (uncalibrated)",
+ "species": [
+  {
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "events": 6,
+   "reports": 6,
+   "first_seen_s": 1792949600,
+   "last_seen_s": 1792949635,
+   "bounds_exact": true,
+   "max_confidence": 0.7,
+   "in_region": null,
+   "non_species": false,
+   "beam_events": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0
+   ],
+   "artifact_events": 6,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 6
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 6.0,
+   "chorus": false
+  },
+  {
+   "species": "Alpha Wren",
+   "scientific": "Aus a",
+   "group": "other-bio",
+   "events": 2,
+   "reports": 4,
+   "first_seen_s": 1792948600,
+   "last_seen_s": 1792951400,
+   "bounds_exact": true,
+   "max_confidence": 0.8,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    },
+    {
+     "hour_s": 1792951200,
+     "events": 1
+    }
+   ],
+   "active_hours": 2,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "Delta Dove",
+   "scientific": "Dus d",
+   "group": "other-bio",
+   "events": 2,
+   "reports": 2,
+   "first_seen_s": 1792948640,
+   "last_seen_s": 1792948643.01,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 2
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 2.0,
+   "chorus": false
+  },
+  {
+   "species": "Bravo Owl",
+   "scientific": "Bus b",
+   "group": "other-bio",
+   "events": 1,
+   "reports": 1,
+   "first_seen_s": 1792948601,
+   "last_seen_s": 1792948601,
+   "bounds_exact": true,
+   "max_confidence": 0.7,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "Charlie Jay",
+   "scientific": "Cus c",
+   "group": "other-bio",
+   "events": 1,
+   "reports": 2,
+   "first_seen_s": 1792948620,
+   "last_seen_s": 1792948623.0,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "Dog",
+   "scientific": "Dog",
+   "group": "mammal",
+   "events": 1,
+   "reports": 1,
+   "first_seen_s": 1792949720,
+   "last_seen_s": 1792949720,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "Eastern Narrow-mouthed Toad",
+   "scientific": "Gastrophryne carolinensis",
+   "group": "amphibian",
+   "events": 1,
+   "reports": 1,
+   "first_seen_s": 1792949700,
+   "last_seen_s": 1792949700,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "White-tailed Deer",
+   "scientific": "Odocoileus virginianus",
+   "group": "mammal",
+   "events": 1,
+   "reports": 1,
+   "first_seen_s": 1792949710,
+   "last_seen_s": 1792949710,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  },
+  {
+   "species": "Zzyzx Mystery",
+   "scientific": "Zzyzx fictus",
+   "group": "other-bio",
+   "events": 1,
+   "reports": 1,
+   "first_seen_s": 1792949730,
+   "last_seen_s": 1792949730,
+   "bounds_exact": true,
+   "max_confidence": 0.6,
+   "in_region": true,
+   "non_species": false,
+   "beam_events": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "artifact_events": 0,
+   "hourly_counts": [
+    {
+     "hour_s": 1792947600,
+     "events": 1
+    }
+   ],
+   "active_hours": 1,
+   "events_per_active_hour": 1.0,
+   "chorus": false
+  }
+ ],
+ "events_total": 16,
+ "artifact_events_total": 6,
+ "artifact_unscored_events": 0,
+ "groups": [
+  {
+   "group": "bird",
+   "species": 0,
+   "events": 0,
+   "reports": 0
+  },
+  {
+   "group": "insect",
+   "species": 1,
+   "events": 6,
+   "reports": 6
+  },
+  {
+   "group": "amphibian",
+   "species": 1,
+   "events": 1,
+   "reports": 1
+  },
+  {
+   "group": "mammal",
+   "species": 2,
+   "events": 2,
+   "reports": 2
+  },
+  {
+   "group": "other-bio",
+   "species": 5,
+   "events": 7,
+   "reports": 10
+  },
+  {
+   "group": "mechanical",
+   "species": 0,
+   "events": 0,
+   "reports": 0
+  }
+ ],
+ "unclassified": [
+  {
+   "species": "Alpha Wren",
+   "scientific": "Aus a",
+   "events": 2
+  },
+  {
+   "species": "Delta Dove",
+   "scientific": "Dus d",
+   "events": 2
+  },
+  {
+   "species": "Bravo Owl",
+   "scientific": "Bus b",
+   "events": 1
+  },
+  {
+   "species": "Charlie Jay",
+   "scientific": "Cus c",
+   "events": 1
+  },
+  {
+   "species": "Zzyzx Mystery",
+   "scientific": "Zzyzx fictus",
+   "events": 1
+  }
+ ],
+ "unclassified_total": 7
+}

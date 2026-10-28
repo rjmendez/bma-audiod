@@ -1,0 +1,558 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:loss-log",
+  "title": "loss records (<data-dir>/history/loss.jsonl)",
+  "description": "One record per sampling tick (default 30 s): exact counter deltas of the bridge, the cable sink and the analyzer since their previous good reading, with per-source freshness. Append-only, size-capped (2 MB x 2 generations). No audio, path, address or host name appears in a record: the schema is closed. Readers MUST skip a record whose `v` they do not know.",
+  "x-contract-version": "1.0.1",
+  "x-discriminator": {
+    "field": "k",
+    "map": {
+      "loss": "loss"
+    }
+  },
+  "x-files": {
+    "loss.jsonl": [
+      "loss"
+    ],
+    "loss_log.jsonl": [
+      "loss"
+    ]
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/loss"
+    }
+  ],
+  "$defs": {
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "k",
+        "v",
+        "t",
+        "restart",
+        "bridge",
+        "sink",
+        "analyzer"
+      ],
+      "properties": {
+        "k": {
+          "const": "loss"
+        },
+        "v": {
+          "const": 1
+        },
+        "t": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Host clock, Unix seconds, at the tick."
+        },
+        "restart": {
+          "type": "boolean",
+          "description": "true when any source has restart true."
+        },
+        "bridge": {
+          "$ref": "#/$defs/bridge"
+        },
+        "sink": {
+          "$ref": "#/$defs/sink"
+        },
+        "analyzer": {
+          "$ref": "#/$defs/analyzer"
+        }
+      }
+    },
+    "bridge": {
+      "type": "object",
+      "description": "bridge_status.json: datagrams = pkts, gaps = gaps; loss_pct = last-interval value, uptime_s as read.",
+      "additionalProperties": false,
+      "required": [
+        "age_s",
+        "reason",
+        "span_s",
+        "restart",
+        "datagrams",
+        "gaps",
+        "loss_pct",
+        "uptime_s"
+      ],
+      "properties": {
+        "age_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Host clock minus the status file's modification time. null when the file is absent."
+        },
+        "reason": {
+          "enum": [
+            null,
+            "first",
+            "missing",
+            "stale",
+            "unreadable",
+            "restart"
+          ],
+          "description": "null: the counters are exact deltas. first: no earlier good reading of this source in this process. missing: no file. stale: age_s above --stale-s. unreadable: not read, not JSON, not an object, or a counter absent or not a non-negative integer. restart: a counter or uptime_s went backwards."
+        },
+        "span_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "description": "Host seconds between the two readings the deltas span (above the tick interval after a gap). null when reason is not null."
+        },
+        "restart": {
+          "type": "boolean",
+          "description": "true exactly when reason is restart."
+        },
+        "datagrams": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "gaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "loss_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Value as read (not a delta); null when the source was not read."
+        },
+        "uptime_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Value as read (not a delta); null when the source was not read."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": null
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "span_s": {
+                "type": "number"
+              },
+              "datagrams": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "integer"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "span_s": {
+                "type": "null"
+              },
+              "datagrams": {
+                "type": "null"
+              },
+              "gaps": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": "restart"
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "restart": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "restart": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "enum": [
+                  "stale",
+                  "unreadable",
+                  "missing"
+                ]
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "loss_pct": {
+                "type": "null"
+              },
+              "uptime_s": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sink": {
+      "type": "object",
+      "description": "sink_status.json: datagrams, rx_errors.",
+      "additionalProperties": false,
+      "required": [
+        "age_s",
+        "reason",
+        "span_s",
+        "restart",
+        "datagrams",
+        "rx_errors"
+      ],
+      "properties": {
+        "age_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Host clock minus the status file's modification time. null when the file is absent."
+        },
+        "reason": {
+          "enum": [
+            null,
+            "first",
+            "missing",
+            "stale",
+            "unreadable",
+            "restart"
+          ],
+          "description": "null: the counters are exact deltas. first: no earlier good reading of this source in this process. missing: no file. stale: age_s above --stale-s. unreadable: not read, not JSON, not an object, or a counter absent or not a non-negative integer. restart: a counter or uptime_s went backwards."
+        },
+        "span_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "description": "Host seconds between the two readings the deltas span (above the tick interval after a gap). null when reason is not null."
+        },
+        "restart": {
+          "type": "boolean",
+          "description": "true exactly when reason is restart."
+        },
+        "datagrams": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "rx_errors": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": null
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "span_s": {
+                "type": "number"
+              },
+              "datagrams": {
+                "type": "integer"
+              },
+              "rx_errors": {
+                "type": "integer"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "span_s": {
+                "type": "null"
+              },
+              "datagrams": {
+                "type": "null"
+              },
+              "rx_errors": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": "restart"
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "restart": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "restart": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "enum": [
+                  "stale",
+                  "unreadable",
+                  "missing"
+                ]
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {}
+          }
+        }
+      ]
+    },
+    "analyzer": {
+      "type": "object",
+      "description": "analysis/status.json: rx.datagrams, rx.bad, rx.gaps; uptime_s as read.",
+      "additionalProperties": false,
+      "required": [
+        "age_s",
+        "reason",
+        "span_s",
+        "restart",
+        "datagrams",
+        "bad",
+        "gaps",
+        "uptime_s"
+      ],
+      "properties": {
+        "age_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Host clock minus the status file's modification time. null when the file is absent."
+        },
+        "reason": {
+          "enum": [
+            null,
+            "first",
+            "missing",
+            "stale",
+            "unreadable",
+            "restart"
+          ],
+          "description": "null: the counters are exact deltas. first: no earlier good reading of this source in this process. missing: no file. stale: age_s above --stale-s. unreadable: not read, not JSON, not an object, or a counter absent or not a non-negative integer. restart: a counter or uptime_s went backwards."
+        },
+        "span_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "description": "Host seconds between the two readings the deltas span (above the tick interval after a gap). null when reason is not null."
+        },
+        "restart": {
+          "type": "boolean",
+          "description": "true exactly when reason is restart."
+        },
+        "datagrams": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "bad": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "gaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Delta of the source counter since the previous good reading; null when reason is not null."
+        },
+        "uptime_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Value as read (not a delta); null when the source was not read."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": null
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "span_s": {
+                "type": "number"
+              },
+              "datagrams": {
+                "type": "integer"
+              },
+              "bad": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "integer"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "span_s": {
+                "type": "null"
+              },
+              "datagrams": {
+                "type": "null"
+              },
+              "bad": {
+                "type": "null"
+              },
+              "gaps": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": "restart"
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "restart": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "restart": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "enum": [
+                  "stale",
+                  "unreadable",
+                  "missing"
+                ]
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "uptime_s": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

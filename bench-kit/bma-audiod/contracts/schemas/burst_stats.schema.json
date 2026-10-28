@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:burst-stats",
+  "title": "burst_stats records (analysis/bursts.jsonl)",
+  "description": "One record per closed epoch-aligned interval (default 60 s) from the analyzer's `bursts` plugin (analysis/bursts.py): metadata that discriminates hypotheses about impulsive 6-16 kHz bursts (unit electronics or housing ticks, insects, a nearby periodic device): fine 1 kHz sub-band levels, an impulse detector with its inter-impulse gap histogram, modal gap and regularity, the envelope modulation rate, and how the impulses spread over the 8 beams. Windows the tagger flagged as speech (or that no tagger verdict covers while the tagger runs) are excluded and counted. Metadata only; no audio is ever stored. Receivers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"burst_stats": "burst_stats"}},
+  "x-files": {"bursts.jsonl": ["burst_stats"]},
+  "oneOf": [{"$ref": "#/$defs/burst_stats"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "num_or_null": {"type": ["number", "null"]},
+    "pct3": {"description": "[p10, p50, p90] or null when there is no sample", "type": ["array", "null"], "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+    "hist8": {"type": ["array", "null"], "items": {"$ref": "#/$defs/count"}, "minItems": 8, "maxItems": 8},
+    "bands10": {"type": "array", "items": {"type": "number"}, "minItems": 10, "maxItems": 10},
+    "burst_stats": {
+      "type": "object",
+      "required": ["k", "v", "t0", "interval_s", "tagger", "win_total", "win_used", "win_speech", "win_unvetted", "win_dead", "analysed_s",
+                   "bands_db", "ref_2_6k_db", "impulses", "gaps", "mod", "detector"],
+      "properties": {
+        "k": {"const": "burst_stats"},
+        "v": {"const": 1},
+        "t0": {"type": "integer", "minimum": 0, "description": "Interval start, Unix seconds, a multiple of interval_s. A window belongs to the interval holding its midpoint."},
+        "interval_s": {"type": "number", "exclusiveMinimum": 0},
+        "partial": {"const": true, "description": "Present (true) only for the interval flushed at shutdown or begun late; other records carry no `partial` key."},
+        "tagger": {"type": "boolean", "description": "true: the speech tagger was running, so every used window was covered by a non-speech tagger verdict. false: no tagger ran, nothing could be excluded."},
+        "win_total": {"$ref": "#/$defs/count"},
+        "win_used": {"$ref": "#/$defs/count", "description": "Windows in the statistics."},
+        "win_speech": {"$ref": "#/$defs/count", "description": "Windows excluded: overlapped a tagger window flagged speech."},
+        "win_unvetted": {"$ref": "#/$defs/count", "description": "Windows excluded: tagger on but no verdict covered them."},
+        "win_dead": {"$ref": "#/$defs/count", "description": "Windows excluded: zero-filled or lost audio (peak below -140 dBFS)."},
+        "analysed_s": {"type": "number", "minimum": 0},
+        "bands_db": {"description": "Per 1 kHz band 6-7 ... 15-16 kHz (10 values), the p10 / p50 / p90 over the used windows of the band power of the beam mean, dBFS; null without a used window.",
+                     "type": ["object", "null"], "required": ["p10", "p50", "p90"], "properties": {"p10": {"$ref": "#/$defs/bands10"}, "p50": {"$ref": "#/$defs/bands10"}, "p90": {"$ref": "#/$defs/bands10"}}},
+        "ref_2_6k_db": {"$ref": "#/$defs/num_or_null", "description": "p50 over the used windows of the 2-6 kHz band power of the beam mean, dBFS (the quiet reference)."},
+        "impulses": {
+          "type": "object",
+          "required": ["n", "rate_per_s", "level_db", "excess_db", "spread_db", "within3_hist", "loudest_beam_hist", "beams_hit_hist", "coincident_all_n"],
+          "properties": {
+            "n": {"$ref": "#/$defs/count"},
+            "rate_per_s": {"$ref": "#/$defs/num_or_null"},
+            "level_db": {"$ref": "#/$defs/pct3"},
+            "excess_db": {"$ref": "#/$defs/pct3"},
+            "spread_db": {"$ref": "#/$defs/pct3"},
+            "within3_hist": {"$ref": "#/$defs/hist8", "description": "index i: impulses with i+1 of the 8 beams within 3 dB of the loudest beam"},
+            "loudest_beam_hist": {"$ref": "#/$defs/hist8", "description": "index i: impulses whose loudest beam is beam i+1"},
+            "beams_hit_hist": {"type": ["array", "null"], "items": {"$ref": "#/$defs/count"}, "minItems": 9, "maxItems": 9, "description": "index i: impulses for which i of the 8 beams are themselves an impulse within +-1 ms"},
+            "coincident_all_n": {"type": ["integer", "null"], "minimum": 0, "description": "impulses on which all 8 beams fired within +-1 ms (= beams_hit_hist[8])"}
+          }
+        },
+        "gaps": {
+          "type": "object",
+          "required": ["n", "hist", "under_n", "over_n", "mode_s", "mode_n", "regularity", "jitter_cv"],
+          "properties": {
+            "n": {"$ref": "#/$defs/count", "description": "number of gaps = impulses - 1 (0 without impulses)"},
+            "hist": {"type": "array", "items": {"$ref": "#/$defs/count"}, "minItems": 30, "maxItems": 30, "description": "30 log-spaced bins, edge i = 0.005 * 6000^(i/30) seconds (5 ms .. 30 s)"},
+            "under_n": {"$ref": "#/$defs/count"},
+            "over_n": {"$ref": "#/$defs/count"},
+            "mode_s": {"type": ["number", "null"], "minimum": 0.005, "exclusiveMaximum": 30},
+            "mode_n": {"type": ["integer", "null"], "minimum": 0},
+            "regularity": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "jitter_cv": {"$ref": "#/$defs/num_or_null"}
+          }
+        },
+        "mod": {
+          "type": "object",
+          "required": ["s", "peak_hz", "fund_hz", "prom_db", "rms_rel"],
+          "properties": {
+            "s": {"type": "number", "minimum": 0, "description": "seconds of envelope in the spectrum (runs of at least 10 s)"},
+            "peak_hz": {"type": ["number", "null"], "minimum": 0.3, "maximum": 30},
+            "fund_hz": {"type": ["number", "null"], "minimum": 0.3, "maximum": 30},
+            "prom_db": {"$ref": "#/$defs/num_or_null"},
+            "rms_rel": {"type": ["number", "null"], "minimum": 0}
+          }
+        },
+        "detector": {
+          "type": "object",
+          "required": ["band_hz", "frame_ms", "thresh_db", "median_s", "min_gap_ms", "abs_floor_db"],
+          "properties": {
+            "band_hz": {"const": [6000, 16000]},
+            "frame_ms": {"const": 1},
+            "thresh_db": {"type": "number"},
+            "median_s": {"type": "number"},
+            "min_gap_ms": {"type": "number"},
+            "abs_floor_db": {"type": "number"}
+          }
+        }
+      }
+    }
+  }
+}

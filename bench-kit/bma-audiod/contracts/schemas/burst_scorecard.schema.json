@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:burst-scorecard",
+  "title": "burst-source report (burst_scorecard.json, burst_hours.jsonl)",
+  "description": "The two machine-readable outputs of tools/burst_source_report.py, written under the report directory chosen with --out: burst_scorecard.json (one JSON document: the pre-registered tests T1..T9 and one verdict per hypothesis) and burst_hours.jsonl (one burst_hour record per UTC hour with dsp coverage; it is also the tool's digest: the next run merges it by hour_utc). Metadata only: no audio, no coordinates, no path, no free text copied from an input. The schema rejects lat/lon/latitude/longitude/path keys. Readers MUST ignore unknown fields only inside the `numbers` objects (open); every other object is closed.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"burst_scorecard": "burst_scorecard", "burst_hour": "burst_hour"}},
+  "x-files": {"burst_scorecard.json": ["burst_scorecard"], "burst_hours.jsonl": ["burst_hour"]},
+  "oneOf": [{"$ref": "#/$defs/burst_scorecard"}, {"$ref": "#/$defs/burst_hour"}],
+  "$defs": {
+    "numnull": {"type": ["number", "null"]},
+    "intnull": {"type": ["integer", "null"]},
+    "unix": {"type": "integer", "minimum": 0},
+    "verdict_name": {"enum": ["supported", "refuted", "inconclusive", "not-measurable"]},
+    "evidence": {"enum": ["exploratory", "confirmatory", "unpinned"]},
+    "test": {
+      "type": "object", "additionalProperties": false, "required": ["value", "n", "status", "reason", "numbers"],
+      "properties": {
+        "value": {"type": ["number", "boolean", "null"], "description": "The headline number of the test (a share, a correlation, a pass flag); null when not measurable."},
+        "n": {"type": "integer", "minimum": 0, "description": "Sample size the test saw (hours)."},
+        "status": {"enum": ["ok", "not_measurable"]},
+        "reason": {"type": ["string", "null"], "description": "Fixed text with counts when not measurable, else null."},
+        "numbers": {"type": "object", "description": "Supporting numbers (confidence intervals, shares, per-test tables). Open: new keys may appear in a minor version."}
+      }
+    },
+    "verdict": {
+      "type": "object", "additionalProperties": false, "required": ["verdict", "basis", "rule", "evidence_class", "n_burst_hours", "numbers", "residual"],
+      "properties": {
+        "verdict": {"$ref": "#/$defs/verdict_name"},
+        "basis": {"type": "string", "description": "Fixed text naming the rule that fired or why none could."},
+        "rule": {"type": "string", "description": "The pre-registered rule, as text."},
+        "evidence_class": {"$ref": "#/$defs/evidence", "description": "unpinned when the thresholds file differs from the pre-registered one; confirmatory when the confirmatory hours alone hold >= 5 burst hours; else exploratory."},
+        "n_burst_hours": {"type": "integer", "minimum": 0},
+        "numbers": {"type": "object"},
+        "residual": {"type": "boolean", "description": "electronics only: not refuted and stationary (T6), i.e. what is left."}
+      }
+    },
+    "verdict_set": {
+      "type": "object", "additionalProperties": false, "required": ["insect", "pulser", "thermal", "electronics"],
+      "properties": {"insect": {"$ref": "#/$defs/verdict"}, "pulser": {"$ref": "#/$defs/verdict"}, "thermal": {"$ref": "#/$defs/verdict"}, "electronics": {"$ref": "#/$defs/verdict"}}
+    },
+    "burst_scorecard": {
+      "type": "object", "additionalProperties": false,
+      "required": ["k", "v", "generated_utc", "tool_version", "thresholds_version", "thresholds_sha256", "thresholds_pinned", "frozen_utc", "data_span_utc", "inputs",
+                   "n_hours_covered", "n_burst_hours", "burst_hours_utc", "n_nights_burst", "tests", "verdicts", "confirmatory", "decisive_count", "surviving", "caveats"],
+      "properties": {
+        "k": {"const": "burst_scorecard"}, "v": {"const": 1},
+        "generated_utc": {"$ref": "#/$defs/unix"},
+        "tool_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "thresholds_version": {"type": "integer", "minimum": 1},
+        "thresholds_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "thresholds_pinned": {"type": "boolean", "description": "True when the thresholds file has the sha256 pre-registered in the tool."},
+        "frozen_utc": {"$ref": "#/$defs/unix", "description": "A literal timestamp written into the thresholds file before its commit (not the commit time). Hours starting at or after it are confirmatory."},
+        "data_span_utc": {"type": "array", "items": {"$ref": "#/$defs/unix"}, "minItems": 2, "maxItems": 2},
+        "inputs": {
+          "type": "object", "additionalProperties": false,
+          "required": ["dsp_records", "transients", "spatial_records", "ambient_records", "coherence_records", "board_records", "beam_bands_records", "skipped_lines"],
+          "properties": {"dsp_records": {"type": "integer", "minimum": 0, "description": "Distinct covered 1 s slots."}, "transients": {"type": "integer", "minimum": 0},
+                         "spatial_records": {"$ref": "#/$defs/intnull"}, "ambient_records": {"type": "integer", "minimum": 0}, "coherence_records": {"type": "integer", "minimum": 0},
+                         "board_records": {"$ref": "#/$defs/intnull"}, "beam_bands_records": {"$ref": "#/$defs/intnull"}, "skipped_lines": {"type": "integer", "minimum": 0}}
+        },
+        "n_hours_covered": {"type": "integer", "minimum": 0}, "n_burst_hours": {"type": "integer", "minimum": 0},
+        "burst_hours_utc": {"type": "array", "items": {"$ref": "#/$defs/unix"}},
+        "n_nights_burst": {"type": "integer", "minimum": 0, "description": "Distinct nights (UTC 18:00 to 18:00) holding a burst hour; below 3 no supported/refuted verdict is given."},
+        "tests": {
+          "type": "object", "additionalProperties": false, "required": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"],
+          "properties": {"T1": {"$ref": "#/$defs/test"}, "T2": {"$ref": "#/$defs/test"}, "T3": {"$ref": "#/$defs/test"}, "T4": {"$ref": "#/$defs/test"}, "T5": {"$ref": "#/$defs/test"},
+                         "T6": {"$ref": "#/$defs/test"}, "T7": {"$ref": "#/$defs/test"}, "T8": {"$ref": "#/$defs/test"}, "T9": {"$ref": "#/$defs/test"}}
+        },
+        "verdicts": {"$ref": "#/$defs/verdict_set"},
+        "confirmatory": {
+          "type": "object", "additionalProperties": false, "required": ["n_hours_covered", "n_burst_hours", "verdicts"],
+          "properties": {"n_hours_covered": {"type": "integer", "minimum": 0}, "n_burst_hours": {"type": "integer", "minimum": 0}, "verdicts": {"$ref": "#/$defs/verdict_set"}},
+          "description": "The same rules on the confirmatory hours alone."
+        },
+        "decisive_count": {"type": "integer", "minimum": 0, "maximum": 4, "description": "Hypotheses with a supported or refuted verdict on >= 5 burst hours."},
+        "surviving": {"type": "array", "items": {"enum": ["insect", "pulser", "thermal", "electronics"]}, "uniqueItems": true, "description": "Hypotheses not refuted."},
+        "caveats": {"type": "array", "items": {"type": "string"}, "description": "Fixed sentences chosen by the tool; never text copied from an input."}
+      },
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]}, {"required": ["path"]}]}
+    },
+    "burst_hour": {
+      "type": "object", "additionalProperties": false,
+      "required": ["k", "v", "hour_utc", "covered_s", "n_transients", "rate_per_covered_s", "is_burst", "excluded_reason", "detector_saturation_flag", "source", "ioi_source",
+                   "evidence_class", "thresholds_version", "features_version", "ioi", "acorr", "level_db", "excess_db_median", "beam", "spatial", "band_8_16k", "bursts",
+                   "ambient", "board", "coherence"],
+      "properties": {
+        "k": {"const": "burst_hour"}, "v": {"const": 1},
+        "hour_utc": {"type": "integer", "minimum": 0, "multipleOf": 3600},
+        "covered_s": {"type": "integer", "minimum": 0, "maximum": 3600, "description": "Distinct 1 s slots of the hour holding at least one dsp record."},
+        "n_transients": {"type": "integer", "minimum": 0},
+        "rate_per_covered_s": {"$ref": "#/$defs/numnull", "description": "n_transients / covered_s; null when covered_s is 0."},
+        "is_burst": {"type": "boolean", "description": "covered_s >= 1800 and rate >= 0.10 (thresholds file); recomputed on every load."},
+        "excluded_reason": {"enum": ["low_coverage", null]},
+        "detector_saturation_flag": {"type": "boolean"},
+        "source": {"enum": ["raw", "digest"], "description": "digest: the raw lines have rotated out and the row of an earlier run was kept."},
+        "ioi_source": {"enum": ["transient", "bursts"], "description": "bursts: the optional analysis/bursts.jsonl (burst_stats) covers >= 1800 s of the hour and supplies the regularity and spread."},
+        "evidence_class": {"enum": ["exploratory", "confirmatory"]},
+        "thresholds_version": {"type": "integer", "minimum": 1}, "features_version": {"type": "integer", "minimum": 1},
+        "ioi": {
+          "type": "object", "additionalProperties": false,
+          "required": ["n", "median_s", "p10_s", "p90_s", "cv_trim", "serial_corr_lag1", "fano_1s", "fano_10s", "trim_max_gap_s", "min_observable_s"],
+          "properties": {"n": {"type": "integer", "minimum": 0}, "median_s": {"$ref": "#/$defs/numnull"}, "p10_s": {"$ref": "#/$defs/numnull"}, "p90_s": {"$ref": "#/$defs/numnull"},
+                         "cv_trim": {"$ref": "#/$defs/numnull"}, "serial_corr_lag1": {"$ref": "#/$defs/numnull"}, "fano_1s": {"$ref": "#/$defs/numnull"}, "fano_10s": {"$ref": "#/$defs/numnull"},
+                         "trim_max_gap_s": {"type": "number"}, "min_observable_s": {"type": "number"}}
+        },
+        "acorr": {
+          "type": "object", "additionalProperties": false,
+          "required": ["bin_s", "max_lag_s", "jitter_window_s", "n_surrogates", "peak_lag_s", "peak_z", "peak_ratio"],
+          "properties": {"bin_s": {"type": "number"}, "max_lag_s": {"type": "number"}, "jitter_window_s": {"type": "number"}, "n_surrogates": {"type": "integer", "minimum": 0},
+                         "peak_lag_s": {"$ref": "#/$defs/numnull"}, "peak_z": {"$ref": "#/$defs/numnull"}, "peak_ratio": {"$ref": "#/$defs/numnull"}}
+        },
+        "level_db": {"type": "object", "additionalProperties": false, "required": ["median", "iqr"], "properties": {"median": {"$ref": "#/$defs/numnull"}, "iqr": {"$ref": "#/$defs/numnull"}}},
+        "excess_db_median": {"$ref": "#/$defs/numnull"},
+        "beam": {
+          "type": "object", "additionalProperties": false, "required": ["counts", "top_share", "entropy_norm", "spread_db_median"],
+          "properties": {"counts": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 8, "maxItems": 8}, "top_share": {"$ref": "#/$defs/numnull"},
+                         "entropy_norm": {"$ref": "#/$defs/numnull"}, "spread_db_median": {"$ref": "#/$defs/numnull"}}
+        },
+        "spatial": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["n_windows", "spread_burst_db", "spread_quiet_db", "directional_frac"],
+          "properties": {"n_windows": {"type": "integer", "minimum": 0}, "spread_burst_db": {"$ref": "#/$defs/numnull"}, "spread_quiet_db": {"$ref": "#/$defs/numnull"}, "directional_frac": {"$ref": "#/$defs/numnull"}}
+        },
+        "band_8_16k": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["burst_db", "quiet_db", "n_slots"],
+          "properties": {"burst_db": {"$ref": "#/$defs/numnull"}, "quiet_db": {"$ref": "#/$defs/numnull"}, "n_slots": {"type": "integer", "minimum": 0}}
+        },
+        "bursts": {
+          "type": ["object", "null"], "additionalProperties": false,
+          "required": ["analysed_s", "n_impulses", "regularity", "jitter_cv", "mode_s", "spread_db_p50", "coincident_share", "band_8_16k_db_p50"],
+          "properties": {"analysed_s": {"type": "number", "minimum": 0}, "n_impulses": {"type": "integer", "minimum": 0}, "regularity": {"$ref": "#/$defs/numnull"}, "jitter_cv": {"$ref": "#/$defs/numnull"},
+                         "mode_s": {"$ref": "#/$defs/numnull"}, "spread_db_p50": {"$ref": "#/$defs/numnull"}, "coincident_share": {"$ref": "#/$defs/numnull"}, "band_8_16k_db_p50": {"$ref": "#/$defs/numnull"}}
+        },
+        "ambient": {
+          "type": "object", "additionalProperties": false, "required": ["temp_c", "age_h", "dtdt_c_per_h"],
+          "properties": {"temp_c": {"$ref": "#/$defs/numnull"}, "age_h": {"type": ["integer", "null"], "minimum": 0, "maximum": 3}, "dtdt_c_per_h": {"$ref": "#/$defs/numnull"}}
+        },
+        "board": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["temp_local_c_median", "dtdt_c_per_h", "coverage_frac"],
+          "properties": {"temp_local_c_median": {"$ref": "#/$defs/numnull"}, "dtdt_c_per_h": {"$ref": "#/$defs/numnull"}, "coverage_frac": {"type": "number", "minimum": 0, "maximum": 1}}
+        },
+        "coherence": {"type": ["object", "null"], "additionalProperties": false, "required": ["n_records"], "properties": {"n_records": {"type": "integer", "minimum": 0}}}
+      },
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]}, {"required": ["path"]}]}
+    }
+  }
+}

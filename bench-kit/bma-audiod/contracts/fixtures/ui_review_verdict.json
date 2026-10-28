@@ -1,0 +1,30 @@
+{
+ "item": {
+  "event_id": "1791997900000-cyanocitta-cristata",
+  "species": {
+   "common": "Blue Jay",
+   "scientific": "Cyanocitta cristata"
+  },
+  "confidence": 0.61,
+  "beams": [
+   3
+  ],
+  "best_beam": 3,
+  "t_start_s": 1791997900.0,
+  "t_utc": "2026-10-14T17:11:40Z",
+  "in_region": true,
+  "group": "bird",
+  "non_species": false,
+  "reason": "disagree",
+  "clip_png": "/api/review/clip?id=1791997838000-poecilecarolinensis-b1",
+  "artifact_flags": {
+   "flags": [
+    "temp_unknown"
+   ],
+   "level": "none"
+  }
+ },
+ "queue_depth": 36,
+ "recorded": true,
+ "label_id": "0123456789abcdef"
+}

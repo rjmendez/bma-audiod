@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:analysis-status",
+  "title": "analysis/status.json",
+  "description": "Rewritten by analysis/host.py about every 5 s. `uptime_s`, `plugins.*.windows/records/errors/dropped` and `rx.*` are cumulative since the host started. `audio_written` is false unless the analyzer runs with `--clip-audio` (off by default, never passed by the supervisor) and the wildlife clip capture (analysis/clips.py, interface `clips`) wrote at least one audio file since this host started; it is the ONLY audio the analyzer can write (certainty > 0.85, never near speech, deleted after 24 h; see specs/clips.md). In the default visual-only mode it stays false. 2.0.0: it was the constant false in 1.x, so a reader that treated true as a violation must now read `clips`.",
+  "x-contract-version": "2.0.0",
+  "type": "object",
+  "required": ["started", "device", "plugins", "rx", "t", "uptime_s", "contiguous_s", "embeddings_stored", "audio_written"],
+  "properties": {
+    "meta": {"type": "object", "description": "1.1.0, optional. Cumulative error and degradation counters of the history writers (nothing here ever stops the analyzer): write_errors and rotate_fallbacks of the rotating JSONL writers, taxa_missing (rows stamped group null because ui/taxa.json was absent) and taxa_unmapped (genus not in the table), config_write_errors, rollup_errors, daily_flush_errors, history_dropped (records for an hour already closed). Optional extra counter coherence_errors (coherence plugin: windows refused for non-finite input or wrong shape, or failed). Optional extra counter indices_errors (indices plugin: windows refused, non-finite or failed, plus windows excluded for lack of tagger coverage).",
+             "required": ["write_errors", "rotate_fallbacks", "taxa_missing", "taxa_unmapped", "config_write_errors", "rollup_errors", "daily_flush_errors", "history_dropped"],
+             "additionalProperties": {"type": "integer", "minimum": 0}},
+    "started": {"type": "number"},
+    "device": {"type": "string", "pattern": "^(cpu|cuda:[0-9]+)$", "description": "Torch device chosen at start (the GPU with the most free VRAM, cpu if none has 1.5 GB)."},
+    "plugins": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/plugin"},
+      "required": ["dsp", "spatial", "tags", "clap", "birds", "novelty"]
+    },
+    "rx": {"type": "object", "required": ["datagrams", "bad", "gaps"],
+           "properties": {"datagrams": {"type": "integer", "minimum": 0}, "bad": {"type": "integer", "minimum": 0}, "gaps": {"type": "integer", "minimum": 0}}},
+    "t": {"type": "number"},
+    "uptime_s": {"type": "number", "minimum": 0},
+    "contiguous_s": {"type": "number", "minimum": 0, "description": "Length of the aligned contiguous audio ring right now."},
+    "embeddings_stored": {"type": "integer", "minimum": 0},
+    "audio_written": {"type": "boolean"},
+    "clips": {"type": "object", "description": "2.0.0, optional (absent with --no clips or when clip capture could not start). Live state of the wildlife clip capture; the counters are in `meta` (clips_*, clip_*, audio_expired, audio_expire_retry, orphans_deleted, sweep_runs, sweep_errors).",
+              "required": ["enabled", "audio", "stored", "pending", "queue_depth", "audio_files", "audio_bytes", "last_stored_t"],
+              "properties": {"enabled": {"const": true}, "audio": {"type": "boolean", "description": "--clip-audio is on. false (default): visual-only, audio_files is 0 and status audio_written stays false."}, "stored": {"type": "integer", "minimum": 0, "description": "Clips written since start."}, "pending": {"type": "integer", "minimum": 0, "description": "Open events plus finished clips waiting in RAM for the speech-guard verdict."},
+                             "queue_depth": {"type": "integer", "minimum": 0}, "audio_files": {"type": "integer", "minimum": 0, "description": "Audio files on disk now."}, "audio_bytes": {"type": "integer", "minimum": 0},
+                             "last_stored_t": {"type": ["number", "null"]}}}
+  },
+  "$defs": {
+    "plugin": {
+      "description": "One entry per plugin, three shapes. Off (`enabled` false): `reason` says why (missing model, import error, --no); the others keep running. Derived (novelty, fed by the tags embeddings): `enabled` true and only a `note`. Running: window counters plus the last timestamp and error.",
+      "type": "object", "required": ["enabled"],
+      "properties": {
+        "enabled": {"type": "boolean"}, "reason": {"type": "string", "minLength": 1}, "note": {"type": "string"},
+        "windows": {"type": "integer", "minimum": 0}, "records": {"type": "integer", "minimum": 0},
+        "errors": {"type": "integer", "minimum": 0}, "dropped": {"type": "integer", "minimum": 0},
+        "last_t": {"type": ["number", "null"]}, "last_error": {"type": ["string", "null"]},
+        "speech_fraction": {"type": "number", "minimum": 0, "maximum": 1, "description": "tags plugin only."}
+      },
+      "if": {"properties": {"enabled": {"const": false}}, "required": ["enabled"]},
+      "then": {"required": ["reason"]},
+      "else": {
+        "if": {"required": ["note"]},
+        "then": {},
+        "else": {"required": ["windows", "records", "errors", "dropped", "last_t", "last_error"]}
+      }
+    }
+  }
+}

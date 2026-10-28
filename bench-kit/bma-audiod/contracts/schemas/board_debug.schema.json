@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:board-debug",
+  "title": "board_debug.jsonl",
+  "description": "One JSON object per line, appended by tools/bma_debug_rx.py from the board daemon's debug stream (bma-audiod on the board: FPGA meters, the DSP raw-receive level monitor, @health housekeeping, daemon status). Every record carries `host_t` (PC Unix seconds at receipt) and `type`. The file rotates at 64 MB. Receivers MUST ignore unknown fields and SHOULD tolerate unknown `type` values (the contract checker flags them as drift so the contract is updated).",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "type", "map": {"meter": "meter", "monitor": "monitor", "health": "health", "status": "status", "health_unparsed": "health_unparsed"}},
+  "x-files": {"board_debug.jsonl": ["meter", "monitor", "health", "status", "health_unparsed"]},
+  "oneOf": [
+    {"$ref": "#/$defs/meter"}, {"$ref": "#/$defs/monitor"}, {"$ref": "#/$defs/health"},
+    {"$ref": "#/$defs/status"}, {"$ref": "#/$defs/health_unparsed"}
+  ],
+  "$defs": {
+    "hex4": {"type": "string", "pattern": "^[0-9a-f]{4}$"},
+    "hex8": {"type": "string", "pattern": "^[0-9a-f]{8}$"},
+    "hex8_or_empty": {"type": "string", "pattern": "^([0-9a-f]{8})?$", "description": "Eight hex digits (a big-endian float32), or the empty string when the board could not read the sensor (28 health records on 2026-10-11 16:01-16:22); the matching *_c field is then null."},
+    "host_t": {"type": "number", "description": "PC wall clock at receipt, Unix seconds (float)."},
+    "meter": {
+      "description": "FPGA meter registers (BMAM datagram). `vals` maps a 2-hex-digit selector to a 4-hex-digit register value. `zero` is the datagram's flags bit 0.",
+      "type": "object",
+      "required": ["type", "seq", "ms", "zero", "vals", "host_t"],
+      "properties": {
+        "type": {"const": "meter"},
+        "seq": {"type": "integer", "minimum": 0},
+        "ms": {"type": "integer", "minimum": 0, "description": "Board uptime in milliseconds at sampling."},
+        "zero": {"type": "boolean"},
+        "vals": {"type": "object", "minProperties": 1, "propertyNames": {"pattern": "^[0-9a-f]{2}$"}, "additionalProperties": {"$ref": "#/$defs/hex4"}},
+        "host_t": {"$ref": "#/$defs/host_t"}
+      }
+    },
+    "monitor": {
+      "description": "One line of the DSP raw-receive level monitor `t dsp slot meansq peak` (board monitor): DSPs 4-9 times slots 0-6 = 42 lines per sweep. Levels are relative to 24-bit full scale (2^23): peak_dbfs = 20 log10(peak/2^23), rms_dbfs = 10 log10(meansq/2^46). SLOT 4 IS NOT AN AUDIO CHANNEL: its raw values sit near full scale and the collector deliberately reports rms_dbfs null for it. rms_dbfs/peak_dbfs are also null when meansq/peak is 0. A line that does not parse as five integers is kept as the `raw` shape (type, seq, line, host_t only).",
+      "type": "object",
+      "required": ["type", "seq", "line", "host_t"],
+      "properties": {
+        "type": {"const": "monitor"},
+        "seq": {"type": "integer", "minimum": 0, "description": "Datagram sequence (all lines of one datagram share it)."},
+        "line": {"type": "string"},
+        "t": {"type": "integer", "description": "Board-side tick from the monitor line (NOT wall clock)."},
+        "dsp": {"type": "integer", "minimum": 4, "maximum": 9},
+        "slot": {"type": "integer", "minimum": 0, "maximum": 6},
+        "meansq": {"type": "integer", "minimum": 0},
+        "peak": {"type": "integer", "minimum": 0},
+        "peak_dbfs": {"type": ["number", "null"], "maximum": 0.001},
+        "rms_dbfs": {"type": ["number", "null"]},
+        "host_t": {"$ref": "#/$defs/host_t"}
+      },
+      "if": {"anyOf": [{"required": ["t"]}, {"required": ["dsp"]}, {"required": ["slot"]}, {"required": ["meansq"]}, {"required": ["peak"]}]},
+      "then": {
+        "description": "Parsed shape: the moment any parsed field is present, all of them must be.",
+        "required": ["t", "dsp", "slot", "meansq", "peak", "peak_dbfs", "rms_dbfs"],
+        "properties": {"line": {"pattern": "^-?[0-9]+( -?[0-9]+){4}$"}},
+        "if": {"properties": {"slot": {"const": 4}}, "required": ["slot"]},
+        "then": {"properties": {"rms_dbfs": {"type": "null"}}}
+      }
+    },
+    "health": {
+      "description": "Board housekeeping, one JSON object per ~60 s from the board (the daemon tails /fwlog/board_health.log, tag @health). The board emits `k`; the collector adds `type`, `seq`, `temp_local_c`, `temp_remote_c` (float32 decoded from the *_hex fields, null if undecodable) and `host_t`. `eth0` is five comma-separated counters, `eth1` three (as the board emits them).",
+      "type": "object",
+      "required": ["k", "type", "seq", "up", "load", "memfree_kb", "temp_local_hex", "temp_remote_hex", "temp_local_c", "temp_remote_c", "fpga", "gpio", "leds", "touch_secs", "eth0", "eth1", "fwlog_free_kb", "procs", "d_state", "dmesg_err", "route_last", "host_t"],
+      "properties": {
+        "k": {"const": "health"}, "type": {"const": "health"},
+        "seq": {"type": "integer", "minimum": 0},
+        "up": {"type": "number", "minimum": 0, "description": "Board uptime, seconds."},
+        "load": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+ [0-9]+\\.[0-9]+ [0-9]+\\.[0-9]+$"},
+        "memfree_kb": {"type": "integer", "minimum": 0},
+        "temp_local_hex": {"$ref": "#/$defs/hex8_or_empty"}, "temp_remote_hex": {"$ref": "#/$defs/hex8_or_empty"},
+        "temp_local_c": {"type": ["number", "null"]}, "temp_remote_c": {"type": ["number", "null"]},
+        "fpga": {
+          "type": "object",
+          "required": ["id20", "id22", "id24", "id26", "ea", "ec", "e6", "e8", "f0", "f2", "glink_err1", "glink_err2", "freq_err", "glink_conn", "glink_pos"],
+          "additionalProperties": {"$ref": "#/$defs/hex4"},
+          "description": "FPGA registers as 4-hex-digit strings. ea = safety mute (0000 = unmuted). f0/f2 are runtime state, not configuration."
+        },
+        "gpio": {"type": "object", "required": ["9", "31", "122", "125"], "additionalProperties": {"enum": [0, 1]}},
+        "leds": {"type": "object", "required": ["status_r", "status_b", "locate_b", "power_r"], "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 255}},
+        "touch_secs": {"type": "string", "pattern": "^[0-9]+$"},
+        "eth0": {"type": "string", "pattern": "^[0-9]+(,[0-9]+){4}$"},
+        "eth1": {"type": "string", "pattern": "^[0-9]+(,[0-9]+){2}$"},
+        "fwlog_free_kb": {"type": "integer", "minimum": 0},
+        "procs": {"type": "object", "required": ["audiod", "monitor", "route"], "additionalProperties": {"type": "integer", "minimum": 0}},
+        "d_state": {"type": "integer", "minimum": 0, "description": "Processes in uninterruptible sleep; a non-zero value that persists means a wedged SPI user."},
+        "dmesg_err": {"type": "integer", "minimum": 0},
+        "route_last": {"type": "string"},
+        "host_t": {"$ref": "#/$defs/host_t"}
+      }
+    },
+    "status": {
+      "description": "Daemon status. `json` is a JSON-ENCODED STRING (double encoded) holding the inner object described by $defs/status_inner; the contract checker validates the inner object too.",
+      "type": "object",
+      "required": ["type", "json", "host_t"],
+      "properties": {"type": {"const": "status"}, "json": {"type": "string"}, "host_t": {"$ref": "#/$defs/host_t"}}
+    },
+    "status_inner": {
+      "type": "object",
+      "description": "Only `state` is guaranteed: right after the daemon starts it reports just {\"state\":\"starting\"}; every later status carries all five fields.",
+      "required": ["state"],
+      "properties": {
+        "state": {"type": "string", "description": "Daemon mode: `starting`, then `meters_only` (the production default, no media path on the board) or a media mode."},
+        "media": {"type": "boolean"},
+        "subs": {"type": "integer", "minimum": 0, "description": "Subscribers currently attached to the daemon."},
+        "monitor_lines": {"type": "integer", "minimum": 0},
+        "meters": {"type": "object", "propertyNames": {"pattern": "^[0-9a-f]{2}$"}, "additionalProperties": {"$ref": "#/$defs/hex4"}}
+      }
+    },
+    "health_unparsed": {
+      "description": "A line that started with `@health ` but did not parse as JSON. In practice the line is a few hundred NUL bytes followed by the intact JSON object (a torn write at log rotation/truncation); about 2% of health lines. Consumers may recover it by stripping NULs and parsing from the first `{`. The record is a known degraded kind, not drift.",
+      "type": "object",
+      "required": ["type", "seq", "line", "host_t"],
+      "properties": {"type": {"const": "health_unparsed"}, "seq": {"type": "integer", "minimum": 0}, "line": {"type": "string", "pattern": "^@health "}, "host_t": {"$ref": "#/$defs/host_t"}}
+    }
+  }
+}

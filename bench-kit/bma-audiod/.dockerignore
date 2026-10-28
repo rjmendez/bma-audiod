@@ -1,0 +1,29 @@
+# Build context = bench-kit/bma-audiod. Keep out everything an image does not need: board-side scripts and firmware
+# captures, binary dumps, build outputs, local overrides and data.
+.git
+# machine-specific local overrides: everything .gitignore lists (templates are *.example.* and stay)
+.env
+**/.env
+pc/bma.local.ps1
+classify/geo_county.local.json
+scripts/private_names.txt
+data/
+models/
+out/
+**/__pycache__
+**/*.pyc
+**/target/
+
+# firmware captures, board scripts and findings are not part of any image
+board/
+dante/
+meter/
+*.pcap
+*.cap
+*.bin
+*.img
+*.hex
+
+# Rust build output (the crates themselves stay: docker/dspd-build.Dockerfile copies them)
+dspd/target/
+daemon/target/

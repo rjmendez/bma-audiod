@@ -1,0 +1,11 @@
+{"k":"tags","t":1792889618.2985377,"beam":3,"speech_p":0.197,"speech_active":false,"top":[["Silence",0.213],["Speech",0.197],["Animal",0.081],["Inside, small room",0.06]],"emb_stored":true}
+{"k":"tags","t":1792889655.2117548,"beam":2,"speech_p":0.029,"speech_active":false,"top":[["Silence",0.188],["White noise",0.06]],"emb_stored":true}
+{"k":"tags","t":1792889678.1971505,"beam":2,"speech_p":0.035,"speech_active":false,"top":[["Silence",0.215],["Animal",0.068],["White noise",0.06],["Mouse",0.058]],"emb_stored":true}
+{"k":"tags","t":1792889680.1845453,"beam":2,"speech_p":0.029,"speech_active":false,"top":[["Silence",0.179],["Animal",0.089],["Mouse",0.068],["Vehicle",0.051]],"emb_stored":true}
+{"k":"tags","t":1792889682.160686,"beam":2,"speech_p":0.032,"speech_active":false,"top":[["Silence",0.133],["Vehicle",0.106],["Animal",0.054]],"emb_stored":true}
+{"k":"tags","t":1792889684.1636715,"beam":2,"speech_p":0.033,"speech_active":false,"top":[["Vehicle",0.294],["Car",0.067],["Silence",0.06]],"emb_stored":true}
+{"k":"tags","t":1792889686.1684525,"beam":2,"speech_p":0.035,"speech_active":false,"top":[["Vehicle",0.376],["Car",0.093]],"emb_stored":true}
+{"k":"tags","t":1792889688.174737,"beam":2,"speech_p":0.035,"speech_active":false,"top":[["Vehicle",0.348],["Car",0.075],["Ship",0.054],["Train",0.05]],"emb_stored":true}
+{"k":"tags","t":1792889708.1859052,"beam":6,"speech_p":0.025,"speech_active":false,"top":[["Silence",0.153],["Insect",0.136],["Cricket",0.13],["Environmental noise",0.113],["Animal",0.097]],"emb_stored":true}
+{"k":"tags","t":1792889710.1996033,"beam":6,"speech_p":0.026,"speech_active":false,"top":[["Silence",0.176],["Cricket",0.138],["Insect",0.132],["Animal",0.092],["Environmental noise",0.091]],"emb_stored":true}
+{"k":"tags","t":1792889700.0,"beam":6,"speech_p":0.197,"speech_active":false,"top":[["Silence",0.213],["Speech",0.197],["Animal",0.081],["Inside, small room",0.06]],"emb_stored":true,"model":{"name":"PANNs CNN14","version":"0.1.1","variant":"best_beam_32k","sha256":"c09888566ab62e6664a85a46a66121891e851f8c24e83ab79bd3cb286ce84d75"},"claim":{"human_verified":false,"source":"model_opinion"},"top_k":[["Silence",0.213],["Animal",0.081],["Inside, small room",0.06],["White noise",0.042],["Mouse",0.031]],"max_unstored_score":0.02}

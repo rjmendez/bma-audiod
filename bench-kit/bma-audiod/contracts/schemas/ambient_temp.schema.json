@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:ambient-temp",
+  "title": "ambient_temp records (<data-dir>/history/ambient_temp.jsonl)",
+  "description": "One record per complete past UTC hour: the 2 m air temperature of that hour at the county-level location, fetched by tools/ambient_temp.py from a weather service (Open-Meteo). Append-only, size-capped (2 MB x 2 generations), at most one record per hour. PRIVACY: a record never carries a location (not the configured coordinates, not the 0.1 degree rounded ones); the schema rejects the obvious keys. Optional covariates (1.1.0): wind_ms, precip_mm, cloud_pct; a record without them (1.0.0) stays valid. Readers MUST ignore unknown fields and tolerate absent optional ones, and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.1.0",
+  "x-discriminator": {"field": "k", "map": {"ambient_temp": "ambient_temp"}},
+  "x-files": {"ambient_temp.jsonl": ["ambient_temp"]},
+  "oneOf": [{"$ref": "#/$defs/ambient_temp"}],
+  "$defs": {
+    "ambient_temp": {
+      "type": "object",
+      "required": ["k", "v", "t_hour_utc", "temp_c", "source", "model_grid_km"],
+      "properties": {
+        "k": {"const": "ambient_temp"},
+        "v": {"const": 1},
+        "t_hour_utc": {"type": "integer", "minimum": 0, "multipleOf": 3600, "description": "Unix seconds of the START of the UTC hour the value belongs to (the value is the Open-Meteo hourly value stamped with that hour)."},
+        "temp_c": {"type": "number", "minimum": -90, "maximum": 60, "description": "2 m air temperature in degrees Celsius. Never NaN or null: such hours are not written."},
+        "source": {"type": "string", "minLength": 1, "description": "`open-meteo` today."},
+        "model_grid_km": {"type": ["integer", "null"], "minimum": 1, "description": "Grid spacing of the weather model in km when known; null when not known (the producer writes null: Open-Meteo does not report the grid of its blended default)."},
+        "wind_ms": {"type": "number", "minimum": 0, "maximum": 150, "description": "Optional (1.1.0). 10 m wind speed in m/s of that hour. Absent when the service had no valid value (null, NaN, out of range)."},
+        "precip_mm": {"type": "number", "minimum": 0, "maximum": 500, "description": "Optional (1.1.0). Precipitation in mm: the Open-Meteo `precipitation` value stamped with t_hour_utc, stored as given. Absent when invalid."},
+        "cloud_pct": {"type": "number", "minimum": 0, "maximum": 100, "description": "Optional (1.1.0). Total cloud cover in percent of that hour. Absent when invalid."}
+      },
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]}]}
+    }
+  }
+}

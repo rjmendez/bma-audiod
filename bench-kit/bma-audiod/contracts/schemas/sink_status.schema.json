@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:sink-status",
+  "title": "sink_status.json",
+  "description": "Written every --stats-s seconds by pc/bma_cable_sink.py for as long as the sink process runs (the file does not exist while the sink is stopped). Since 1.1.0 the sink keeps metering and logging beam bands when the 16-channel audio endpoint is not ready and retries opening it every 15 s, so `audio_output` says whether audio is actually being played and `device_error` why not. All counters are cumulative since the sink started except `buffered_ms`, `playing`, `audio_output` and `device_error`. 1.1.0 (additive): `audio_output` and `device_error` added; `device` may now be null (until the output has been opened). 1.2.0 (additive): optional `rx_errors`, the cumulative count of datagrams whose processing raised (for example MemoryError under commit exhaustion); the receive thread survives them and the process exits with code 3 after 200 in a row.",
+  "x-contract-version": "1.2.0",
+  "type": "object",
+  "required": ["t", "device", "datagrams", "bad", "buffered_ms", "underruns", "slips", "slipped_frames", "missing_slot_blocks", "holes", "playing", "data_frames", "data_dropped"],
+  "properties": {
+    "t": {"type": "number"},
+    "device": {"type": ["string", "null"], "minLength": 1, "description": "WASAPI output device name once the output has been opened; null before that (1.1.0)."},
+    "audio_output": {"type": "boolean", "description": "true while the 16-channel WASAPI stream is open and audio is being played (1.1.0)."},
+    "device_error": {"type": ["string", "null"], "description": "Why the audio output is not open (for example the endpoint is still stereo); null when it is open or has not been tried (1.1.0)."},
+    "datagrams": {"type": "integer", "minimum": 0, "description": "Well-formed BMAA datagrams received."},
+    "bad": {"type": "integer", "minimum": 0, "description": "Datagrams rejected by the BMAA parser."},
+    "rx_errors": {"type": "integer", "minimum": 0, "description": "Receive-loop failures since the sink started: a datagram whose processing (or the socket read) raised. Each is logged (first 5, then every 1000th) and followed by a 50 ms pause; 200 in a row make the process exit with code 3 for a supervisor restart. Nonzero means packets were lost inside the sink (1.2.0)."},
+    "buffered_ms": {"type": "integer", "minimum": 0, "description": "Audio currently queued for playback."},
+    "underruns": {"type": "integer", "minimum": 0, "description": "Times the ring ran dry and silence (all-zero samples on ch9-11, the silent-row marker) was played."},
+    "slips": {"type": "integer", "minimum": 0, "description": "Times the ring overflowed and the oldest frames were dropped (visible as an index jump)."},
+    "slipped_frames": {"type": "integer", "minimum": 0},
+    "missing_slot_blocks": {"type": "integer", "minimum": 0, "description": "Slot-blocks zero-filled because a beam never arrived."},
+    "holes": {"type": "integer", "minimum": 0, "description": "Holes in the absolute block index filled with silence."},
+    "playing": {"type": "boolean"},
+    "data_frames": {"type": "integer", "minimum": 0, "description": "Data-track frames queued."},
+    "data_dropped": {"type": "integer", "minimum": 0, "description": "Data-track records refused because the FIFO was full. Board records (kind 2) wait up to 5 s for room before they count here; anchors, band records and bridge status never wait."}
+  }
+}

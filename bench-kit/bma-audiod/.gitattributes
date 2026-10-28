@@ -1,0 +1,11 @@
+# Board-side scripts run under busybox sh; a stray CR breaks them. Keep LF.
+*.sh text eol=lf
+*.pl text eol=lf
+*.py text eol=lf
+*.c text eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.pcap binary
+*.json text eol=lf
+*.jsonl text eol=lf

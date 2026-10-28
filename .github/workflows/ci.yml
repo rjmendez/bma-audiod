@@ -1,0 +1,130 @@
+name: ci
+# Tiers (docs/CI.md): guards and the changed areas' fast tests on every PR push; the full suite on push to master, on a
+# workflow_dispatch with tier=full, or on a PR labelled ci:full. Tests are listed in scripts/ci_manifest.toml, not here.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: fast or full
+        type: choice
+        options: [fast, full]
+        default: fast
+      areas:
+        description: auto, all, or a comma list of areas
+        type: string
+        default: auto
+permissions:
+  contents: read
+# One run per ref; a new push cancels the stale PR run, never a master run. Adding a label other than ci:full gets its own group so it cancels nothing.
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && github.run_id || 'run' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+defaults:
+  run:
+    shell: bash
+    working-directory: bench-kit/bma-audiod
+env:
+  BASE: ${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/master' }}
+  AREAS: ${{ inputs.areas }}
+jobs:
+  plan:
+    if: ${{ github.event.pull_request.draft != true && (github.event.action != 'labeled' || github.event.label.name == 'ci:full') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      linux: ${{ steps.plan.outputs.linux }}
+      windows: ${{ steps.plan.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: plan
+        run: python scripts/run_ci.py --tier fast --areas "${AREAS:-auto}" --base "$BASE" --plan >> "$GITHUB_OUTPUT"
+  guards:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bench-kit/bma-audiod/scripts/requirements-ci.txt
+      - run: python -m pip install -r scripts/requirements-ci.txt
+      - run: python scripts/run_ci.py --tier fast --os linux --areas guards
+  fast-linux:
+    needs: plan
+    if: ${{ needs.plan.outputs.linux != '0' && github.event_name != 'push' && !(github.event_name == 'workflow_dispatch' && inputs.tier == 'full') && !(github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:full')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bench-kit/bma-audiod/scripts/requirements-ci.txt
+      - run: python -m pip install -r scripts/requirements-ci.txt
+      - run: python scripts/run_ci.py --tier fast --os linux --areas "${AREAS:-auto}" --base "$BASE"
+  fast-windows:
+    needs: plan
+    if: ${{ needs.plan.outputs.windows != '0' && github.event_name != 'push' && !(github.event_name == 'workflow_dispatch' && inputs.tier == 'full') && !(github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:full')) }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: bench-kit/bma-audiod/scripts/requirements-ci-windows.txt
+      - run: python -m pip install -r scripts/requirements-ci-windows.txt
+      - run: python scripts/run_ci.py --tier fast --os windows --areas "${AREAS:-auto}" --base "$BASE"
+  full-linux:
+    needs: plan
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'full') || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:full')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bench-kit/bma-audiod/scripts/requirements-ci.txt
+      - run: python -m pip install -r scripts/requirements-ci.txt
+      # the supervisor does this in production; the runner default (208 KB) drops datagrams under load
+      - run: sudo sysctl -w net.core.rmem_max=8388608
+      - run: python scripts/run_ci.py --tier full --os linux --areas "${AREAS:-all}" --base "$BASE" --retry-timing 1
+  full-windows:
+    needs: plan
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'full') || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:full')) }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: bench-kit/bma-audiod/scripts/requirements-ci-windows.txt
+      - run: python -m pip install -r scripts/requirements-ci-windows.txt
+      - run: python scripts/run_ci.py --tier full --os windows --areas "${AREAS:-all}" --base "$BASE" --retry-timing 1

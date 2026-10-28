@@ -1,0 +1,7 @@
+{"k":"clap","t":1792889618.2985377,"beam":3,"top":[["room tone, quiet background noise",0.544],["a dog barking",0.107],["silence",0.097]]}
+{"k":"clap","t":1792889655.2117548,"beam":2,"top":[["a car passing",0.581],["room tone, quiet background noise",0.154],["silence",0.081]]}
+{"k":"clap","t":1792889678.1971505,"beam":2,"top":[["a car passing",0.565],["room tone, quiet background noise",0.146],["silence",0.061]]}
+{"k":"clap","t":1792889683.1897707,"beam":2,"top":[["a car passing",0.848],["room tone, quiet background noise",0.037],["wind blowing",0.022]]}
+{"k":"clap","t":1792889688.174737,"beam":2,"top":[["wind blowing",0.577],["a fan or air conditioner humming",0.097],["a car passing",0.09]]}
+{"k":"clap","t":1792889708.1859052,"beam":6,"top":[["a car passing",0.502],["room tone, quiet background noise",0.234],["silence",0.104]]}
+{"k":"clap","t":1792889705.0,"beam":6,"top":[["a door closing",0.686],["water running",0.096],["footsteps",0.066]],"model":{"name":"laion/clap-htsat-unfused","version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","variant":"best_beam_48k","sha256":"dfebd755eea767ebb168635205c12cbc169c2033e5cc912c9dcd0b8a9e7605e0"},"claim":{"human_verified":false,"source":"model_opinion"},"top_k":[["a door closing",0.686],["water running",0.096],["footsteps",0.066],["a phone ringing",0.022],["insects buzzing",0.018]],"max_unstored_score":0.016}

@@ -1,0 +1,8 @@
+{
+ "type": "urn:bma-ui:problem:invalid_parameter",
+ "title": "Invalid parameter",
+ "status": 422,
+ "code": "invalid_parameter",
+ "detail": "expected an integer in [0, 7]",
+ "param": "band"
+}

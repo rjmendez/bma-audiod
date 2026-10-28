@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:perch-report",
+  "title": "perch_report (output of tools/perch_report.py)",
+  "description": "One JSON document: Perch vs BirdNET top-1 agreement over perch.jsonl and birds.jsonl. Metadata only: no audio, no coordinates, no path. Human-voice labels never appear. Readers MUST ignore unknown fields of a later minor version.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["k", "v", "generated_s", "input", "min_logit", "windows", "agreement", "per_species", "by_beam", "by_confidence_bin", "by_hour_utc", "disagreements", "coverage", "perch_top1_groups"],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "compared", "agree", "rate"],
+      "properties": {"key": {}, "compared": {"$ref": "#/$defs/count"}, "agree": {"$ref": "#/$defs/count"}, "rate": {"$ref": "#/$defs/rate"}}
+    }
+  },
+  "properties": {
+    "k": {"const": "perch_report"},
+    "v": {"const": 1},
+    "generated_s": {"type": "number"},
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perch_records", "perch_windows", "birds_rows", "excluded_human_voice"],
+      "properties": {"perch_records": {"$ref": "#/$defs/count"}, "perch_windows": {"$ref": "#/$defs/count"}, "birds_rows": {"$ref": "#/$defs/count"}, "excluded_human_voice": {"$ref": "#/$defs/count"}}
+    },
+    "min_logit": {"type": ["number", "null"]},
+    "windows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "both_same_species", "both_same_genus", "both_differ", "perch_only", "birds_only", "both_silent"],
+      "properties": {"total": {"$ref": "#/$defs/count"}, "both_same_species": {"$ref": "#/$defs/count"}, "both_same_genus": {"$ref": "#/$defs/count"}, "both_differ": {"$ref": "#/$defs/count"},
+                     "perch_only": {"$ref": "#/$defs/count"}, "birds_only": {"$ref": "#/$defs/count"}, "both_silent": {"$ref": "#/$defs/count"}}
+    },
+    "agreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compared", "agree", "rate"],
+      "properties": {"compared": {"$ref": "#/$defs/count"}, "agree": {"$ref": "#/$defs/count"}, "rate": {"$ref": "#/$defs/rate"}}
+    },
+    "per_species": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/row"}, {"properties": {"key": {"type": "string", "minLength": 1}}}]}},
+    "by_beam": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/row"}, {"properties": {"key": {"type": "integer", "minimum": 0, "maximum": 8}}}]}},
+    "by_confidence_bin": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/row"}, {"properties": {"key": {"enum": ["0.00-0.50", "0.50-0.70", "0.70-0.85", "0.85-1.00"]}}}]}},
+    "by_hour_utc": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/row"}, {"properties": {"key": {"type": "integer", "minimum": 0, "maximum": 23}}}]}},
+    "disagreements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "listed", "items"],
+      "properties": {
+        "total": {"$ref": "#/$defs/count"},
+        "listed": {"$ref": "#/$defs/count"},
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "t", "beam", "birdnet", "perch", "same_genus"],
+            "properties": {
+              "event_id": {"type": ["string", "null"], "pattern": "^[0-9]{1,16}-[a-z0-9-]{0,60}$"},
+              "t": {"type": "number", "description": "End of the 5 s Perch window, Unix seconds."},
+              "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8},
+              "birdnet": {"type": "object", "additionalProperties": false, "required": ["species", "common", "score"],
+                          "properties": {"species": {"type": "string"}, "common": {"type": "string", "minLength": 1}, "score": {"type": "number", "minimum": 0, "maximum": 1}}},
+              "perch": {"type": "object", "additionalProperties": false, "required": ["species", "logit"],
+                        "properties": {"species": {"type": "string", "minLength": 1}, "logit": {"type": "number"}}},
+              "same_genus": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["birdnet_species", "named_by_perch", "never_named"],
+      "properties": {
+        "birdnet_species": {"$ref": "#/$defs/count"},
+        "named_by_perch": {"$ref": "#/$defs/count"},
+        "never_named": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["key", "common", "reports"],
+                                                    "properties": {"key": {"type": "string", "minLength": 1}, "common": {"type": "string", "minLength": 1}, "reports": {"$ref": "#/$defs/count"}}}}
+      }
+    },
+    "perch_top1_groups": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}}
+  }
+}

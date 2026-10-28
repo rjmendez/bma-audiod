@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:beam-bands",
+  "title": "beam_bands records (JSONL log and cable data-track kind 4)",
+  "description": "One record per second of CONTIGUOUS, aligned 8-beam audio, produced by pc/bma_cable_sink.py (BandMeter). The same compact JSON line (separators , and :) is the payload of data-track frame kind 4 AND one line of the beam_bands.jsonl log (default <data-dir>/reports/beam_bands.jsonl, rotated to .1 at 256 MB, metadata only, no audio). Values are mean-square level in dB re full scale per beam and octave band: a sine of amplitude A reads 20*log10(A/sqrt(2)) dB in its band (full scale reads -3.0), silence reads -200.0. The record carries its own major version in `v`.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"beam_bands": "beam_bands"}},
+  "x-files": {"beam_bands.jsonl": ["beam_bands"]},
+  "oneOf": [{"$ref": "#/$defs/beam_bands"}],
+  "$defs": {
+    "beam_bands": {
+      "type": "object",
+      "required": ["k", "v", "idx", "t_us", "n", "zero_frac", "edges_hz", "db"],
+      "properties": {
+        "k": {"const": "beam_bands"},
+        "v": {"const": 1, "description": "Record format major version. A reader MUST skip records with a v it does not know."},
+        "idx": {"type": "integer", "minimum": 0, "maximum": 4294967295, "description": "Card sample index (the BMAA `block` space, u32) of the first sample of the window."},
+        "t_us": {"type": "integer", "minimum": 0, "description": "PC UTC microseconds when the record was produced, i.e. when the window's last sample had arrived: the window started about n/48000 s earlier."},
+        "n": {"const": 48000, "description": "Window length in samples (1 s at 48 kHz)."},
+        "zero_frac": {"type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of the window's rows in which all 8 beams are exactly zero (lost audio filled with silence)."},
+        "edges_hz": {"const": [[50, 125], [125, 250], [250, 500], [500, 1000], [1000, 2000], [2000, 4000], [4000, 8000], [8000, 16000]], "description": "The 8 octave bands [lo, hi) in Hz; a bin belongs to a band when lo <= f < hi."},
+        "db": {
+          "type": "array", "minItems": 8, "maxItems": 8,
+          "items": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "number", "minimum": -200.0, "maximum": 0.0}},
+          "description": "db[beam][band]: beam 0-7 = beams 1-8 (bridge slots 0-7), band index into edges_hz; one decimal; -200.0 = no energy."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,727 @@
+{
+  "manifest_version": 1,
+  "note": "The one registry of analysis plugins (docs/design/w3-plugin-manifest.md). UTF-8, LF, no BOM, no tabs, 2-space indent. Consumers: host.py, manifest.py, pc/install_task.ps1, docker/analyzer.Dockerfile, contracts/check_contracts.py. To add a plugin see analysis/README.md, section 'Adding a plugin'.",
+  "support_files": [
+    "host.py",
+    "plugins.py",
+    "core_make.py",
+    "wiring.py",
+    "manifest.py",
+    "plugins.manifest.json",
+    "hist.py",
+    "taxa.py",
+    "runmeta.py",
+    "rollup.py",
+    "daily.py",
+    "analyzer_history.py",
+    "clips.py",
+    "clip_features.py",
+    "clip_render.py",
+    "pcen.py",
+    "clip_exclude.json",
+    "tonal_mask.json"
+  ],
+  "pc_only_files": [
+    "run_analyzer.sh"
+  ],
+  "extra_files": [
+    {
+      "src": "classify/bma_classify.py",
+      "targets": [
+        "pc",
+        "image"
+      ]
+    },
+    {
+      "src": "classify/birdnet_coverage.json",
+      "targets": [
+        "pc",
+        "image"
+      ]
+    },
+    {
+      "src": "pc/history_log.py",
+      "targets": [
+        "pc",
+        "image"
+      ]
+    },
+    {
+      "src": "ui/taxa.json",
+      "targets": [
+        "pc",
+        "image"
+      ]
+    }
+  ],
+  "legacy_order": {
+    "note": "the frozen ORDER of the hand-written text before the manifest (byte-identical --help is a hard requirement); plugins not listed are appended in manifest order. Normalising it is an owner decision (design section 11.2).",
+    "no_help": [
+      "dsp",
+      "spatial",
+      "tags",
+      "clap",
+      "birds",
+      "coherence",
+      "indices",
+      "bursts",
+      "mixscore",
+      "perch"
+    ],
+    "outputs": [
+      "dsp",
+      "spatial",
+      "tags",
+      "novelty",
+      "clap",
+      "birds",
+      "coherence",
+      "indices",
+      "bursts",
+      "perch"
+    ]
+  },
+  "extra_rows": [
+    {
+      "after": "tags",
+      "label": "`novelty`",
+      "window": "per embedding",
+      "text": "online k-means scene id, distance score, `novel_event` after 3 consecutive outliers; state persists",
+      "deps": "sklearn"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "dsp",
+      "module": "plugins",
+      "files": [],
+      "import": "required",
+      "make": "core_make:make_dsp",
+      "heavy": false,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "dsp.jsonl"
+      ],
+      "hooks": {},
+      "meta_counters": [],
+      "readme": {
+        "label": "`dsp`",
+        "window": "1 s",
+        "text": "per-beam level, band shares, centroid, flatness; one record per transient excursion; tonal-line tracker (appeared/gone, state every 10 s); noise floor + drift",
+        "deps": "numpy/scipy"
+      }
+    },
+    {
+      "name": "spatial",
+      "module": "plugins",
+      "files": [],
+      "import": "required",
+      "make": "core_make:make_spatial",
+      "heavy": false,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "spatial.jsonl"
+      ],
+      "hooks": {},
+      "meta_counters": [],
+      "readme": {
+        "label": "`spatial`",
+        "window": "1 s",
+        "text": "azimuth + resultant length from the 8-beam energy ring, dominant beam, spread, `directional` vs running baseline, `source` events. Ring frame, uncalibrated",
+        "deps": "numpy/scipy"
+      }
+    },
+    {
+      "name": "tags",
+      "module": "plugins",
+      "files": [],
+      "import": "required",
+      "make": "core_make:make_tags",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "tags.jsonl"
+      ],
+      "hooks": {
+        "feeds": [
+          "tags_feed",
+          "speech_guard",
+          "clips"
+        ]
+      },
+      "meta_counters": [],
+      "readme": {
+        "label": "`tags`",
+        "window": "5 s / 2 s",
+        "text": "PANNs CNN14 AudioSet top classes (527), speech probability, 2048-d embedding (float16)",
+        "deps": "torch, panns-inference (overlay), weights"
+      }
+    },
+    {
+      "name": "clap",
+      "module": "plugins",
+      "files": [],
+      "import": "required",
+      "make": "core_make:make_clap",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "clap.jsonl"
+      ],
+      "hooks": {},
+      "meta_counters": [],
+      "readme": {
+        "label": "`clap`",
+        "window": "5 s",
+        "text": "LAION-CLAP (htsat-unfused, 48 kHz native) zero-shot scores over `DEFAULT_PROMPTS` (no speech prompts)",
+        "deps": "transformers (overlay), weights"
+      }
+    },
+    {
+      "name": "tags_pad",
+      "module": "pad_lane",
+      "files": [
+        "pad_lane.py"
+      ],
+      "import": "lazy",
+      "make": "pad_lane:make_tags_pad",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "tags_pad.jsonl"
+      ],
+      "in_docstring": false,
+      "in_no_help": false,
+      "gate": {
+        "flag": "tags_pad_s",
+        "off_reason": "off by default (--tags-pad-s)",
+        "beats_no": true,
+        "silent": true
+      },
+      "flags": [
+        {
+          "name": "--tags-pad-s",
+          "type": "float",
+          "default": 0.0,
+          "metavar": "S",
+          "help": "experimental: also run PANNs on the window zero-padded to S s (e.g. 10) -> tags_pad.jsonl; default 0 = off"
+        }
+      ],
+      "cli_slot": "tail",
+      "soft_needs": [
+        "tags"
+      ],
+      "hooks": {
+        "cost": true
+      },
+      "meta_counters": [],
+      "contract": {
+        "name": "pad-lane",
+        "version": "1.1.0",
+        "schema": "pad_lane.schema.json",
+        "spec": "pad-lane.md",
+        "fixtures": [
+          "tags_pad.jsonl",
+          "clap_pad.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/tags_pad.jsonl",
+            "optional": true,
+            "note": "optional: only with --tags-pad-s"
+          },
+          {
+            "file": "analysis/clap_pad.jsonl",
+            "optional": true,
+            "note": "optional: only with --clap-pad-s"
+          }
+        ],
+        "tests": []
+      },
+      "readme": {
+        "label": "`tags_pad` (opt-in)",
+        "window": "5 s, zero-padded to `--tags-pad-s`",
+        "text": "experimental: PANNs on the window padded to 10 s -> `tags_pad.jsonl` (contract pad-lane); a speech window (padded or unpadded) writes nothing",
+        "deps": "torch, `tags`"
+      }
+    },
+    {
+      "name": "clap_pad",
+      "module": "pad_lane",
+      "files": [
+        "pad_lane.py"
+      ],
+      "import": "lazy",
+      "make": "pad_lane:make_clap_pad",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "clap_pad.jsonl"
+      ],
+      "in_docstring": false,
+      "in_no_help": false,
+      "gate": {
+        "flag": "clap_pad_s",
+        "off_reason": "off by default (--clap-pad-s)",
+        "beats_no": true,
+        "silent": true
+      },
+      "flags": [
+        {
+          "name": "--clap-pad-s",
+          "type": "float",
+          "default": 0.0,
+          "metavar": "S",
+          "help": "experimental: also run CLAP on the window zero-padded to S s (e.g. 10) -> clap_pad.jsonl; default 0 = off"
+        }
+      ],
+      "cli_slot": "tail",
+      "soft_needs": [
+        "clap"
+      ],
+      "hooks": {
+        "cost": true
+      },
+      "meta_counters": [],
+      "readme": {
+        "label": "`clap_pad` (opt-in)",
+        "window": "5 s, zero-padded to `--clap-pad-s`",
+        "text": "experimental: CLAP on the window padded to 10 s -> `clap_pad.jsonl` (contract pad-lane)",
+        "deps": "transformers, `clap`"
+      }
+    },
+    {
+      "name": "birds",
+      "module": "plugins",
+      "files": [],
+      "import": "required",
+      "make": "core_make:make_birds",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "birds.jsonl"
+      ],
+      "hooks": {
+        "window_info_to_daily": true,
+        "feeds": [
+          "birds_to_perch",
+          "clips"
+        ]
+      },
+      "meta_counters": [],
+      "readme": {
+        "label": "`birds`",
+        "window": "3 s",
+        "text": "BirdNET on the two strongest beams",
+        "deps": "birdnetlib"
+      }
+    },
+    {
+      "name": "coherence",
+      "module": "coherence",
+      "files": [
+        "coherence.py"
+      ],
+      "import": "required",
+      "make": "coherence:make",
+      "heavy": false,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "coherence.jsonl"
+      ],
+      "flags": [
+        {
+          "name": "--coherence-interval-s",
+          "type": "float",
+          "default": 60.0,
+          "help": "coherence plugin: seconds per beam_coherence record (default 60)"
+        }
+      ],
+      "cli_slot": "plugins",
+      "hooks": {
+        "flush": true
+      },
+      "meta_counters": [
+        {
+          "name": "coherence_errors",
+          "sum": [
+            "errors",
+            "nonfinite"
+          ],
+          "only_when_running": false
+        }
+      ],
+      "contract": {
+        "name": "beam-coherence",
+        "version": "1.0.0",
+        "schema": "beam_coherence.schema.json",
+        "spec": "beam-coherence.md",
+        "fixtures": [
+          "beam_coherence.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/coherence.jsonl",
+            "optional": true,
+            "note": "optional until the coherence plugin is deployed"
+          }
+        ],
+        "tests": []
+      },
+      "readme": {
+        "label": "`coherence`",
+        "window": "1 s every 2 s; one record per `--coherence-interval-s` (60)",
+        "text": "inter-beam MSC (raw, bias floor 0.048), cross-phase, lag, level difference per ring-adjacent pair and octave band, quiet/active; `coherence.jsonl` (contract beam-coherence)",
+        "deps": "numpy/scipy"
+      }
+    },
+    {
+      "name": "perch",
+      "module": "perch",
+      "files": [
+        "perch.py"
+      ],
+      "import": "lazy",
+      "make": "perch:make",
+      "heavy": true,
+      "deploy": [
+        "pc"
+      ],
+      "outputs": [
+        "perch.jsonl"
+      ],
+      "gate": {
+        "flag": "perch_model",
+        "off_reason": "disabled, no --perch-model",
+        "beats_no": false
+      },
+      "flags": [
+        {
+          "name": "--perch-model",
+          "type": "str",
+          "default": null,
+          "help": "Perch 2.0 ONNX model file (tools/fetch_perch.py); the perch shadow plugin is off without it"
+        },
+        {
+          "name": "--perch-labels",
+          "type": "str",
+          "default": null,
+          "help": "Perch label file (default labels.csv next to --perch-model)"
+        },
+        {
+          "name": "--perch-embeddings",
+          "type": "flag",
+          "help": "also store the 1536-d float16 Perch embedding of every logged window (perch_emb.f16 + perch_emb.jsonl under --out, 2 x 64 MiB at most); default: no embeddings"
+        },
+        {
+          "name": "--perch-threads",
+          "type": "int",
+          "default": 4,
+          "help": "onnxruntime CPU threads for Perch (default 4)"
+        },
+        {
+          "name": "--perch-device",
+          "type": "str",
+          "default": "cpu",
+          "help": "Perch device: cpu (default), auto (the analyzer's device), cuda or cuda:N; never falls back to the CPU silently"
+        },
+        {
+          "name": "--perch-ort-dir",
+          "type": "str",
+          "default": null,
+          "help": "directory with onnxruntime (e.g. onnxruntime-gpu), appended to sys.path for Perch only"
+        },
+        {
+          "name": "--perch-min-logit",
+          "type": "float",
+          "default": 0.0,
+          "help": "Perch best-species logit from which it counts as naming a species in the perch_agreement records (default 0.0; logits are uncalibrated: tune it on the data)"
+        }
+      ],
+      "cli_slot": "plugins",
+      "requires": [
+        "tags"
+      ],
+      "hooks": {
+        "flush": true,
+        "stats_in_status": true
+      },
+      "meta_counters": [],
+      "contract": {
+        "name": "perch",
+        "version": "1.1.0",
+        "schema": "perch.schema.json",
+        "spec": "perch.md",
+        "fixtures": [
+          "perch.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/perch.jsonl",
+            "optional": true,
+            "note": "optional: only written when the analyzer runs with --perch-model"
+          }
+        ],
+        "tests": []
+      },
+      "note": "deploy is pc only: the image has no onnxruntime and entrypoint.sh passes no --perch-* flags (contracts/specs/perch.md, Deploy)",
+      "readme": {
+        "label": "`perch` (opt-in)",
+        "window": "5 s",
+        "text": "Perch 2.0 (14,795 labels) SHADOW beside BirdNET: top-5 labels with raw logits (mean of 8 beams, loudest beam), `perch_agreement` per minute; off without `--perch-model`",
+        "deps": "onnxruntime (overlay), `tools/fetch_perch.py` model + labels, `tags`"
+      }
+    },
+    {
+      "name": "mixscore",
+      "module": "mixscore",
+      "files": [
+        "mixscore.py"
+      ],
+      "import": "lazy",
+      "make": "mixscore:make",
+      "heavy": true,
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "mixscore.jsonl"
+      ],
+      "in_docstring": false,
+      "gate": {
+        "flag": "mixscore",
+        "off_reason": "off by default (--mixscore)",
+        "beats_no": true
+      },
+      "flags": [
+        {
+          "name": "--mixscore",
+          "type": "flag",
+          "help": "enable the mixscore plugin (default OFF): BirdNET on the 8-beam mean next to the per-beam birds plugin, metadata in mixscore.jsonl; needs the tags and birds plugins; costs about one more BirdNET per 3 s window"
+        },
+        {
+          "name": "--mixscore-every",
+          "type": "int",
+          "default": 4,
+          "metavar": "N",
+          "help": "mixscore: score every N-th 3 s window (default 4: the plugin costs about 20 ms CPU per second of audio at 1, which with the other plugins is over the analyzer budget; the cost divides by N; only windows that were scored enter the comparison; N < 4 prints a warning)"
+        }
+      ],
+      "cli_slot": "geo",
+      "requires": [
+        "tags",
+        "birds"
+      ],
+      "hooks": {
+        "observes": true,
+        "cost": true,
+        "flush": true
+      },
+      "meta_counters": [
+        {
+          "name": "mixscore_errors",
+          "sum": [
+            "errors"
+          ],
+          "only_when_running": true
+        }
+      ],
+      "contract": {
+        "name": "mixscore",
+        "version": "1.0.0",
+        "schema": "mixscore.schema.json",
+        "spec": "mixscore.md",
+        "fixtures": [
+          "mixscore.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/mixscore.jsonl",
+            "optional": true,
+            "note": "optional: written only when the analyzer runs with --mixscore"
+          }
+        ],
+        "tests": []
+      },
+      "note": "frozen legacy wart: the host module docstring never listed mixscore.jsonl (in_docstring false)",
+      "readme": {
+        "label": "`mixscore` (opt-in)",
+        "window": "3 s (every `--mixscore-every`-th, default 4)",
+        "text": "BirdNET on the power-preserving mean of the 8 aligned beams next to the per-beam `birds` plugin; one `mixscore_compare` record per minute (events both / beam_only / mix_only, best-beam versus mix confidence). Off without `--mixscore`; needs the `tags` and `birds` plugins; metadata only; `mixscore.jsonl` (contract mixscore); `python mixscore_report.py <out>/mixscore.jsonl` prints the comparison",
+        "deps": "the classifier (birdnetlib), `tags`, `birds`"
+      }
+    },
+    {
+      "name": "bursts",
+      "module": "bursts",
+      "files": [
+        "bursts.py"
+      ],
+      "import": "optional",
+      "make": "bursts:make",
+      "heavy": false,
+      "import_warn": "WARN: bursts module not importable: {error}",
+      "import_reason": "{type}: {error}",
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "bursts.jsonl"
+      ],
+      "flags": [
+        {
+          "name": "--bursts-interval-s",
+          "type": "float",
+          "default": 60.0,
+          "help": "bursts plugin: seconds per burst_stats record (default 60)"
+        }
+      ],
+      "cli_slot": "plugins",
+      "soft_needs": [
+        "tags"
+      ],
+      "hooks": {
+        "consumes_speech": true,
+        "flush": true
+      },
+      "meta_counters": [
+        {
+          "name": "bursts_errors",
+          "sum": [
+            "errors"
+          ],
+          "only_when_running": false
+        }
+      ],
+      "contract": {
+        "name": "burst-stats",
+        "version": "1.0.0",
+        "schema": "burst_stats.schema.json",
+        "spec": "burst-stats.md",
+        "fixtures": [
+          "burst_stats.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/bursts.jsonl",
+            "optional": true,
+            "note": "optional until the bursts plugin is deployed"
+          }
+        ],
+        "tests": []
+      },
+      "readme": {
+        "label": "`bursts`",
+        "window": "1 s; one record per `--bursts-interval-s` (60)",
+        "text": "6-16 kHz impulse detector (1 ms frames, 10 dB over a 3 s median): counts, level, beam spread, gap histogram 5 ms..30 s, modal gap, regularity, modulation 0.3-30 Hz; `bursts.jsonl` (contract burst-stats)",
+        "deps": "numpy/scipy"
+      }
+    },
+    {
+      "name": "indices",
+      "module": "indices",
+      "files": [
+        "indices.py"
+      ],
+      "import": "optional",
+      "make": "indices:make",
+      "heavy": true,
+      "import_warn": "WARN: indices module not loaded: {type}: {error}",
+      "import_reason": "indices.py not importable",
+      "deploy": [
+        "pc",
+        "image"
+      ],
+      "outputs": [
+        "indices.jsonl"
+      ],
+      "flags": [
+        {
+          "name": "--indices-interval-s",
+          "type": "float",
+          "default": 300.0,
+          "help": "indices plugin: seconds per acoustic_indices record (default 300)"
+        },
+        {
+          "name": "--indices-hop-s",
+          "type": "float",
+          "default": 30.0,
+          "help": "indices plugin: seconds between its 5 s windows (default 30)"
+        },
+        {
+          "name": "--indices-without-speech-gate",
+          "type": "flag",
+          "help": "start the indices plugin although the tags plugin (the speech gate) is not running; records then say speech_gate false (default: refuse to start without the tagger)"
+        }
+      ],
+      "cli_slot": "plugins",
+      "soft_needs": [
+        "tags"
+      ],
+      "hooks": {
+        "consumes_tag": true,
+        "flush": true
+      },
+      "meta_counters": [
+        {
+          "name": "indices_errors",
+          "sum": [
+            "errors",
+            "nonfinite",
+            "untagged"
+          ],
+          "only_when_running": false
+        }
+      ],
+      "contract": {
+        "name": "acoustic-indices",
+        "version": "1.0.0",
+        "schema": "acoustic_indices.schema.json",
+        "spec": "acoustic-indices.md",
+        "fixtures": [
+          "acoustic_indices.jsonl"
+        ],
+        "live": [
+          {
+            "file": "analysis/indices.jsonl",
+            "optional": true,
+            "note": "optional until the indices plugin is deployed"
+          }
+        ],
+        "tests": []
+      },
+      "readme": {
+        "label": "`indices`",
+        "window": "5 s every 15 s (`--indices-hop-s`); one record per `--indices-interval-s` (300)",
+        "text": "ACI (1-11 kHz), entropies, Bioacoustic Index (2-8 kHz), NDSI, median level, 4-12 kHz chorus band energy, p10/p50/p90 per interval; `indices.jsonl` (contract acoustic-indices)",
+        "deps": "numpy/scipy"
+      }
+    }
+  ]
+}

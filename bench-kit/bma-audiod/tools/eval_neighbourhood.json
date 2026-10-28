@@ -1,0 +1,18 @@
+{
+"version":1,
+"groups":{
+"tags":{
+"bird":["Bird","Bird vocalization, bird call, bird song","Chirp, tweet","Owl","Crow","Caw","Pigeon, dove","Coo","Hoot","Squawk","Duck","Goose","Quack","Gull","Rooster","Chicken, rooster","Turkey","Gobble"],
+"insect":["Insect","Cricket","Mosquito","Fly, housefly","Bee, wasp, etc.","Buzz"],
+"mammal":["Animal","Dog","Bark","Cat","Meow","Domestic animals, pets","Wild animals"],
+"amphibian":["Frog","Croak"],
+"mechanical":["Engine","Motor vehicle (road)","Vehicle","Car","Truck","Aircraft","Siren","Power tool","Tools","Machine gun","Gunshot, gunfire","Fireworks"]
+},
+"clap":{
+"bird":["bird song"],
+"insect":["insects buzzing"],
+"mammal":["a dog barking","a cat meowing"],
+"mechanical":["a car passing","a siren","a motor or machinery running","a drill or power tool","a vacuum cleaner","a fan or air conditioner humming"]
+}
+}
+}

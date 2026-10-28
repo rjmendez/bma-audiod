@@ -1,0 +1,7 @@
+{
+ "type": "urn:bma-ui:problem:too_many_attempts",
+ "title": "Too many failed attempts",
+ "status": 429,
+ "code": "too_many_attempts",
+ "detail": "this address is locked out; retry later"
+}

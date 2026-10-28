@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:analysis-records",
+  "title": "analysis host JSONL records",
+  "description": "Records appended by analysis/host.py (plugins in analysis/plugins.py) under <data-dir>/analysis, one JSON object per line, discriminated by `k`. `t` is PC wall-clock Unix seconds of the 1 s analysis window (transients carry the frame time inside the window). Beams are 1-based (1..8 = bridge slots 0-7 = matrix inputs 1..8). Metadata only: no audio is written by the record streams; audio can only be written by the explicit --clip-audio option of the wildlife clip capture (interface `clips`, off by default, status.json audio_written). Receivers MUST ignore unknown fields. Added in 1.1.0: the `bird_filtered` kind (out-of-region audit record). Added in 1.2.0 (all optional, forward-only: rows written before keep lacking them): tonal_appeared / tonal_gone / tonal_state lines gain `beam` (1..8 or null: the most recent confident per-beam attribution of the line; null when the two strongest beams are within 1.5 dB or the tone is not clear in the 1.37 s segment, because the array is nearly omni) and tonal_appeared `beam_margin_db`; `spatial` gains `decorr`; `bird` and `bird_filtered` gain `in_region`, `non_species` and `group`; `bird_filtered` gains `reject_reason`; `novelty` and `novel_event` rows gain `run` and `mv`. Still NOT part of the contract: `electronic` (tonal lines) and the `non_species` / `in_region` fields of `bird` records (receivers ignore them).",
+  "x-contract-version": "1.3.0",
+  "x-discriminator": {"field": "k", "map": {"dsp": "dsp", "transient": "transient", "tonal_appeared": "tonal_appeared", "tonal_gone": "tonal_gone", "tonal_state": "tonal_state", "spatial": "spatial", "source": "source", "tags": "tags", "clap": "clap", "bird": "bird", "bird_filtered": "bird_filtered", "novelty": "novelty", "novel_event": "novel_event"}},
+  "x-files": {
+    "dsp.jsonl": ["dsp", "transient", "tonal_appeared", "tonal_gone", "tonal_state"],
+    "spatial.jsonl": ["spatial", "source"],
+    "tags.jsonl": ["tags"],
+    "clap.jsonl": ["clap"],
+    "birds.jsonl": ["bird", "bird_filtered"],
+    "novelty.jsonl": ["novelty", "novel_event"]
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/dsp"}, {"$ref": "#/$defs/transient"}, {"$ref": "#/$defs/tonal_appeared"}, {"$ref": "#/$defs/tonal_gone"},
+    {"$ref": "#/$defs/tonal_state"}, {"$ref": "#/$defs/spatial"}, {"$ref": "#/$defs/source"}, {"$ref": "#/$defs/tags"},
+    {"$ref": "#/$defs/clap"}, {"$ref": "#/$defs/bird"}, {"$ref": "#/$defs/bird_filtered"}, {"$ref": "#/$defs/novelty"}, {"$ref": "#/$defs/novel_event"}
+  ],
+  "$defs": {
+    "t": {"type": "number", "description": "Unix seconds (float)."},
+    "beam": {"type": "integer", "minimum": 1, "maximum": 8},
+    "labelprob": {"type": "array", "prefixItems": [{"type": "string", "minLength": 1}, {"type": "number", "minimum": 0, "maximum": 1}], "items": false, "minItems": 2, "maxItems": 2},
+    "model": {"type": "object", "required": ["name", "version", "variant", "sha256"], "description": "1.3.0, optional on tags, clap, bird, bird_filtered. Which model produced the record: name, version (null when unknown), variant = the input policy applied to the same weights, sha256 = of the model file or the pinned weights blob (null when unreadable).",
+              "properties": {"name": {"type": "string", "minLength": 1}, "version": {"type": ["string", "null"]}, "variant": {"type": ["string", "null"]}, "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}},
+    "claim": {"type": "object", "required": ["human_verified", "source"], "description": "1.3.0, optional. A model output is an opinion: human_verified is always false, source always model_opinion.",
+              "properties": {"human_verified": {"const": false}, "source": {"const": "model_opinion"}}},
+    "max_unstored_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "1.3.0, optional. Best score of a label that is not in top_k (the 6th best); null when the model exposes none."},
+    "bird_top_k": {"type": "array", "maxItems": 5, "description": "1.3.0, optional. The up to 5 best detections of the beam's window (stored and location-filtered), largest first: [scientific name or common name, confidence].",
+                   "items": {"type": "array", "prefixItems": [{"type": ["string", "null"]}, {"type": ["number", "null"], "minimum": 0, "maximum": 1}], "items": false, "minItems": 2, "maxItems": 2}},
+    "dsp": {
+      "description": "1 Hz level record. rms_dbfs is per beam (index 0 = beam 1). band_pct is the share of energy in 5 fixed bands, summing to about 100.",
+      "type": "object",
+      "required": ["k", "t", "rms_dbfs", "peak_dbfs", "band_pct", "centroid_hz", "flatness"],
+      "properties": {
+        "k": {"const": "dsp"}, "t": {"$ref": "#/$defs/t"},
+        "rms_dbfs": {"type": "array", "items": {"type": "number", "maximum": 0.001}, "minItems": 8, "maxItems": 8},
+        "peak_dbfs": {"type": "number", "maximum": 0.001},
+        "band_pct": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 100}, "minItems": 5, "maxItems": 5},
+        "centroid_hz": {"type": "number", "minimum": 0}, "flatness": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "transient": {
+      "description": "A 20 ms frame more than 6 dB over the running median. beam_spread_db is the loudest-minus-quietest beam in that frame (small = diffuse).",
+      "type": "object", "required": ["k", "t", "excess_db", "level_db", "loudest_beam", "beam_spread_db"],
+      "properties": {"k": {"const": "transient"}, "t": {"$ref": "#/$defs/t"}, "excess_db": {"type": "number"}, "level_db": {"type": "number", "maximum": 0.001},
+                     "loudest_beam": {"$ref": "#/$defs/beam"}, "beam_spread_db": {"type": "number", "minimum": 0}}
+    },
+    "tonal_appeared": {
+      "type": "object", "required": ["k", "t", "hz", "excess_db"],
+      "properties": {"k": {"const": "tonal_appeared"}, "t": {"$ref": "#/$defs/t"}, "hz": {"type": "number", "exclusiveMinimum": 0, "maximum": 24000}, "excess_db": {"type": "number"},
+                     "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8}, "beam_margin_db": {"type": ["number", "null"]}}
+    },
+    "tonal_gone": {
+      "type": "object", "required": ["k", "t", "hz", "lasted_s"],
+      "properties": {"k": {"const": "tonal_gone"}, "t": {"$ref": "#/$defs/t"}, "hz": {"type": "number", "exclusiveMinimum": 0, "maximum": 24000}, "lasted_s": {"type": "number", "minimum": 0}, "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8}}
+    },
+    "tonal_state": {
+      "description": "Every ~10 s: the currently announced tonal lines (sorted by hz) and the noise floor of the beam mean.",
+      "type": "object", "required": ["k", "t", "lines", "noise_floor_db", "noise_floor_drift_db"],
+      "properties": {
+        "k": {"const": "tonal_state"}, "t": {"$ref": "#/$defs/t"},
+        "lines": {"type": "array", "items": {"type": "object", "required": ["hz", "excess_db", "age_s"],
+                  "properties": {"hz": {"type": "number", "exclusiveMinimum": 0, "maximum": 24000}, "excess_db": {"type": "number"}, "age_s": {"type": "number", "minimum": 0}, "beam": {"type": ["integer", "null"], "minimum": 1, "maximum": 8}}}},
+        "noise_floor_db": {"type": "number"}, "noise_floor_drift_db": {"type": "number"}
+      }
+    },
+    "spatial": {
+      "description": "Azimuth estimate from the 8-beam energy ring. UNCALIBRATED: the ring ordering is measured, absolute beam centres are not (calibrated is always false in 1.0.0). e_rel_db is each beam's level relative to the loudest (max 0).",
+      "type": "object", "required": ["k", "t", "az_deg", "R", "dominant_beam", "spread_db", "e_rel_db", "directional", "calibrated"],
+      "properties": {
+        "k": {"const": "spatial"}, "t": {"$ref": "#/$defs/t"},
+        "az_deg": {"type": "number", "minimum": 0, "maximum": 360}, "R": {"type": "number", "minimum": 0, "maximum": 1},
+        "dominant_beam": {"$ref": "#/$defs/beam"}, "spread_db": {"type": "number", "minimum": 0},
+        "e_rel_db": {"type": "array", "items": {"type": "number", "maximum": 0.001}, "minItems": 8, "maxItems": 8},
+        "directional": {"type": "boolean"}, "calibrated": {"const": false},
+        "decorr": {"type": "number", "minimum": 0, "maximum": 1, "description": "1.2.0, optional. Cross-beam decorrelation index of the 200-4000 Hz filtered 1 s window: 1 - the mean zero-lag Pearson correlation over the 8 ring-adjacent beam pairs (i, i+1 mod 8); unit-less, clipped to [0, 1], 3 decimals; 0 = identical waveforms in every adjacent pair. An UNVALIDATED proxy for wind/rain turbulence (no ground truth exists): calibrate on a quiet day before reading absolute values."}
+      }
+    },
+    "source": {
+      "description": "Emitted when two consecutive windows are directional.",
+      "type": "object", "required": ["k", "t", "az_deg", "dominant_beam", "R", "calibrated"],
+      "properties": {"k": {"const": "source"}, "t": {"$ref": "#/$defs/t"}, "az_deg": {"type": "number", "minimum": 0, "maximum": 360},
+                     "dominant_beam": {"$ref": "#/$defs/beam"}, "R": {"type": "number", "minimum": 0, "maximum": 1}, "calibrated": {"const": false}}
+    },
+    "tags": {
+      "description": "PANNs CNN14 AudioSet tagging of one beam. `top` keeps labels with probability >= 0.05 (up to 5, possibly none). Invariant: emb_stored == not speech_active (a window scored as speech stores no embedding).",
+      "type": "object", "required": ["k", "t", "beam", "speech_p", "speech_active", "top", "emb_stored"],
+      "properties": {
+        "k": {"const": "tags"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"},
+        "speech_p": {"type": "number", "minimum": 0, "maximum": 1}, "speech_active": {"type": "boolean"},
+        "top": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "maxItems": 5},
+        "emb_stored": {"type": "boolean"},
+        "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"},
+        "top_k": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "minItems": 5, "maxItems": 5, "description": "1.3.0, optional. The 5 best of the 527 classes, largest first, no probability floor."}
+      },
+      "allOf": [
+        {"if": {"properties": {"speech_active": {"const": true}}, "required": ["speech_active"]}, "then": {"properties": {"emb_stored": {"const": false}}}},
+        {"if": {"properties": {"speech_active": {"const": false}}, "required": ["speech_active"]}, "then": {"properties": {"emb_stored": {"const": true}}}}
+      ]
+    },
+    "clap": {
+      "description": "LAION-CLAP zero-shot over a fixed prompt list; always the top 3 prompts.",
+      "type": "object", "required": ["k", "t", "beam", "top"],
+      "properties": {"k": {"const": "clap"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"},
+                     "top": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "minItems": 3, "maxItems": 3},
+                     "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"},
+                     "top_k": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "minItems": 5, "maxItems": 5, "description": "1.3.0, optional. The 5 best prompts, largest first."}}
+    },
+    "bird": {
+      "description": "One BirdNET detection on one of the two strongest beams. `provenance` is always the string model_opinion: a detection is the model's guess, never ground truth. common/scientific/confidence are nullable because the plugin copies them with dict.get.",
+      "type": "object", "required": ["k", "t", "beam", "level_dbfs", "common", "scientific", "confidence", "provenance"],
+      "properties": {
+        "k": {"const": "bird"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"}, "level_dbfs": {"type": "number", "maximum": 0.001},
+        "common": {"type": ["string", "null"]}, "scientific": {"type": ["string", "null"]},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "in_region": {"type": ["boolean", "null"], "description": "1.2.0: the location filter verdict; null = filter off or label not judged."}, "non_species": {"type": "boolean", "description": "1.2.0: a sound class (Engine, Dog ...), not a species."}, "group": {"type": ["string", "null"], "description": "1.2.0: taxonomic group copied verbatim from ui/taxa.json (bird, insect, amphibian, mammal, mechanical) or other-bio for a genus the table does not list; null when the table was missing (counted in status meta.taxa_missing)."},
+        "provenance": {"const": "model_opinion"},
+        "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"},
+        "top_k": {"$ref": "#/$defs/bird_top_k"}, "score_floor": {"type": "number", "minimum": 0, "maximum": 1, "description": "1.3.0, optional. The analyzer's --min-conf: BirdNET returns no score below it, so max_unstored_score is null."}
+      }
+    },
+    "bird_filtered": {
+      "description": "Audit record (analysis-records 1.1.0): a BirdNET detection that the county-level location/date species filter judged NOT expected here. The record is kept and flagged, not dropped; it is written only when the filter is on (`--geo-config`), next to the `bird` records of the same window. Same fields as `bird` except that `in_region` is present and always false. From 1.2.0 it also carries `reject_reason` (`geo_not_predicted`: the species is not on the location/date list; the library reports only a membership flag, never a score), `non_species` and `group`. `provenance` is always model_opinion. No location is ever stored in a record.",
+      "type": "object", "required": ["k", "t", "beam", "level_dbfs", "common", "scientific", "confidence", "in_region", "provenance"],
+      "properties": {
+        "k": {"const": "bird_filtered"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"}, "level_dbfs": {"type": "number", "maximum": 0.001},
+        "common": {"type": ["string", "null"]}, "scientific": {"type": ["string", "null"]},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "in_region": {"const": false}, "reject_reason": {"const": "geo_not_predicted"}, "non_species": {"type": "boolean"}, "group": {"type": ["string", "null"]},
+        "provenance": {"const": "model_opinion"},
+        "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"},
+        "top_k": {"$ref": "#/$defs/bird_top_k"}, "score_floor": {"type": "number", "minimum": 0, "maximum": 1, "description": "1.3.0, optional. The analyzer's --min-conf: BirdNET returns no score below it, so max_unstored_score is null."}
+      }
+    },
+    "novelty": {
+      "description": "Online k-means scene model over stored (non-speech) embeddings. During warm-up the record is the short shape {state: warming_up, seen}.",
+      "type": "object", "required": ["k", "t", "seen"],
+      "properties": {"k": {"const": "novelty"}, "t": {"$ref": "#/$defs/t"}, "seen": {"type": "integer", "minimum": 0},
+                     "state": {"const": "warming_up"}, "scene": {"type": "integer", "minimum": 0}, "dist": {"type": "number", "minimum": 0},
+                     "score": {"type": "number", "minimum": 0}, "novel": {"type": "boolean"},
+                     "run": {"type": ["integer", "null"], "description": "1.2.0: analyzer start (Unix s, int) = run_id of the analysis_config record."}, "mv": {"type": ["string", "null"], "description": "1.2.0: model version, e.g. km12-sk1.7.2; gains -from<ver> when the state was fitted by another scikit-learn."}},
+      "if": {"required": ["state"]},
+      "then": {"description": "Warm-up shape {k, t, state, seen}: no scene/dist/score/novel.", "not": {"anyOf": [{"required": ["scene"]}, {"required": ["dist"]}, {"required": ["score"]}, {"required": ["novel"]}]}},
+      "else": {
+        "description": "Scored shape. `novel` is decided on the unrounded score (> 3.0) but `score` is published rounded to 2 decimals, so a novel record can show exactly 3.0.",
+        "required": ["scene", "dist", "score", "novel"],
+        "if": {"properties": {"novel": {"const": true}}, "required": ["novel"]},
+        "then": {"properties": {"score": {"minimum": 3.0}}}
+      }
+    },
+    "novel_event": {
+      "description": "Three consecutive novelty scores above 3.0 (unrounded; the published score is rounded to 2 decimals, so it may read 3.0).",
+      "type": "object", "required": ["k", "t", "scene", "score"],
+      "properties": {"k": {"const": "novel_event"}, "t": {"$ref": "#/$defs/t"}, "scene": {"type": "integer", "minimum": 0}, "score": {"type": "number", "minimum": 3.0}}
+    }
+  }
+}

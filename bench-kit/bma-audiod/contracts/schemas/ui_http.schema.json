@@ -1,0 +1,3417 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:bma:contract:ui-http",
+ "title": "bma_ui HTTP payloads and hourly rollup records",
+ "description": "Read-only JSON API of ui/bma_ui.py (GET/HEAD only) and the append-only hourly rollup lines under <data-dir>/reports/ui. Units are in the field names (_s epoch or duration seconds, _db mean-square dB re full scale, _dbfs, _hz, _pct, _deg, _kb, _c). Errors are application/problem+json (the `problem` payload).",
+ "x-contract-version": "1.13.0",
+ "x-payloads": {
+  "problem": "any 4xx/5xx",
+  "status": "GET /api/status",
+  "events": "GET /api/detections/events",
+  "event": "GET /api/detections/event",
+  "density": "GET /api/detections/density",
+  "species": "GET /api/detections/species",
+  "beams_live": "GET /api/beams/live",
+  "beams_stats": "GET /api/beams/stats",
+  "beams_heatmap": "GET /api/beams/heatmap",
+  "system": "GET /api/system",
+  "calibration": "GET /api/calibration",
+  "rollup": "one line of rollup_YYYYMMDD.jsonl",
+  "spectrum": "GET /api/spectrum",
+  "session": "GET /api/session",
+  "healthz": "GET /healthz (no login)",
+  "review_next": "GET /api/review/next",
+  "review_stats": "GET /api/review/stats",
+  "review_verdict": "POST /api/review/verdict, POST /api/review/skip"
+ },
+ "$defs": {
+  "problem": {
+   "type": "object",
+   "required": [
+    "type",
+    "title",
+    "status",
+    "code",
+    "detail"
+   ],
+   "properties": {
+    "type": {
+     "type": "string",
+     "pattern": "^urn:bma-ui:problem:[a-z_]+$"
+    },
+    "title": {
+     "type": "string"
+    },
+    "status": {
+     "type": "integer"
+    },
+    "code": {
+     "type": "string",
+     "description": "invalid_parameter 422, host_not_allowed 403, method_not_allowed 405, not_found 404, internal_error 500; since 1.4.0 (login enabled): unauthorized 401 (with WWW-Authenticate: Basic) and too_many_attempts 429 (with Retry-After seconds); since 1.5.0: rate_limited 429 (GET /api/spectrum, with Retry-After 1) and spectrum_detail_disabled 403; since 1.7.0: invalid_request 400 (malformed body of a POST), csrf_failed 403 (a POST without the session's CSRF token or from another origin), login_disabled 403 (POST /login on a --require-identity server); a refused passkey is 401 unauthorized; since 1.8.0: not_labelable 422 and labels_unavailable 503 (/api/review/*); since 1.9.0: range_not_satisfiable 416 (GET /api/review/audio, with Content-Range: bytes */size); since 1.13.0 (--ui-next, GET /api/v2/live): origin_not_allowed 403, upgrade_required 426 and too_many_connections 503 (with Retry-After)"
+    },
+    "detail": {
+     "type": "string"
+    },
+    "param": {
+     "type": "string"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "status": {
+        "const": 401
+       }
+      },
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "properties": {
+       "code": {
+        "const": "unauthorized"
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "status": {
+        "const": 429
+       }
+      },
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "properties": {
+       "code": {
+        "enum": [
+         "too_many_attempts",
+         "rate_limited"
+        ]
+       }
+      }
+     }
+    }
+   ],
+   "additionalProperties": false
+  },
+  "status": {
+   "type": "object",
+   "required": [
+    "ui_version",
+    "now_s",
+    "now_utc",
+    "frame",
+    "bridge",
+    "sink",
+    "analysis",
+    "board",
+    "sources",
+    "any_stale",
+    "last_event",
+    "latest",
+    "ingest",
+    "slot_mapping_reliable_from_s",
+    "taxa",
+    "artifact_gate"
+   ],
+   "properties": {
+    "ui_version": {
+     "type": "string",
+     "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "now_s": {
+     "type": "number"
+    },
+    "now_utc": {
+     "type": "string"
+    },
+    "frame": {
+     "type": "string"
+    },
+    "bridge": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "required": [
+      "state",
+      "loss_pct",
+      "gaps",
+      "age_s"
+     ],
+     "properties": {
+      "state": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "loss_pct": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "gaps": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "pkts": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "pps": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "uptime_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "nch": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "age_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     }
+    },
+    "sink": {
+     "type": [
+      "object",
+      "null"
+     ]
+    },
+    "analysis": {
+     "type": [
+      "object",
+      "null"
+     ]
+    },
+    "board": {
+     "type": "object",
+     "required": [
+      "reachable",
+      "enabled",
+      "error",
+      "age_s",
+      "api_version",
+      "uptime_s",
+      "temp_local_c",
+      "temp_remote_c",
+      "pattern_ref",
+      "beams_applied_by_dspd"
+     ],
+     "properties": {
+      "reachable": {
+       "type": "boolean"
+      },
+      "enabled": {
+       "type": "boolean"
+      },
+      "error": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "age_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "api_version": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "uptime_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "temp_local_c": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "temp_remote_c": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "pattern_ref": {},
+      "beams_applied_by_dspd": {
+       "type": [
+        "boolean",
+        "null"
+       ]
+      }
+     },
+     "additionalProperties": false
+    },
+    "sources": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "name",
+       "present",
+       "size_bytes",
+       "mtime_s",
+       "age_s",
+       "stale_after_s",
+       "stale",
+       "lines",
+       "garbage_lines",
+       "rejected_records",
+       "resets",
+       "last_error"
+      ],
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "present": {
+        "type": "boolean"
+       },
+       "size_bytes": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "mtime_s": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "age_s": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "stale_after_s": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "stale": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "lines": {
+        "type": "integer"
+       },
+       "garbage_lines": {
+        "type": "integer"
+       },
+       "rejected_records": {
+        "type": "integer"
+       },
+       "resets": {
+        "type": "integer"
+       },
+       "last_error": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "any_stale": {
+     "type": "boolean"
+    },
+    "last_event": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "required": [
+      "t_s",
+      "age_s",
+      "species",
+      "confidence",
+      "in_region"
+     ],
+     "properties": {
+      "t_s": {
+       "type": "number"
+      },
+      "age_s": {
+       "type": "number"
+      },
+      "species": {
+       "type": "string"
+      },
+      "confidence": {
+       "type": "number"
+      },
+      "in_region": {
+       "type": [
+        "boolean",
+        "null"
+       ]
+      }
+     }
+    },
+    "latest": {
+     "type": "object",
+     "required": [
+      "tags",
+      "tags_t_s",
+      "clap",
+      "clap_t_s",
+      "spatial",
+      "dsp_rms_dbfs",
+      "dsp_t_s"
+     ],
+     "properties": {
+      "tags": {
+       "type": [
+        "array",
+        "null"
+       ]
+      },
+      "tags_t_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "clap": {
+       "type": [
+        "array",
+        "null"
+       ]
+      },
+      "clap_t_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "spatial": {
+       "type": [
+        "object",
+        "null"
+       ]
+      },
+      "dsp_rms_dbfs": {
+       "type": [
+        "array",
+        "null"
+       ]
+      },
+      "dsp_t_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     },
+     "additionalProperties": false
+    },
+    "ingest": {
+     "type": "object",
+     "required": [
+      "backfill_done",
+      "backfill_s",
+      "window_h",
+      "events_in_memory",
+      "beam_windows_in_memory",
+      "rollup_records",
+      "rollup_garbage_lines",
+      "rollup_write_errors",
+      "rollup_load_errors"
+     ],
+     "properties": {
+      "backfill_done": {
+       "type": "boolean"
+      },
+      "backfill_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "window_h": {
+       "type": "number"
+      },
+      "events_in_memory": {
+       "type": "integer"
+      },
+      "beam_windows_in_memory": {
+       "type": "integer"
+      },
+      "rollup_records": {
+       "type": "integer"
+      },
+      "rollup_garbage_lines": {
+       "type": "integer"
+      },
+      "rollup_write_errors": {
+       "type": "integer"
+      },
+      "rollup_load_errors": {
+       "type": "integer"
+      }
+     },
+     "additionalProperties": false
+    },
+    "slot_mapping_reliable_from_s": {
+     "type": "number"
+    },
+    "human_hidden_24h": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "1.6.0. Events with a human-voice label (Human vocal, Human non-vocal, Human whistle) that started in the last 24 h and were hidden from every view; a count only, no label, no time. Optional: a server older than 1.6.0 omits it."
+    },
+    "taxa": {
+     "type": "object",
+     "required": [
+      "loaded",
+      "n_genera",
+      "error",
+      "unclassified_events_24h"
+     ],
+     "properties": {
+      "loaded": {
+       "type": "boolean"
+      },
+      "n_genera": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "error": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "unclassified_events_24h": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "additionalProperties": false
+    },
+    "spectrum": {
+     "type": "object",
+     "required": [
+      "enabled",
+      "detail_enabled",
+      "state"
+     ],
+     "description": "1.5.0. The spectrum feed at a glance (no rows). Optional: a server older than 1.5.0 omits it.",
+     "properties": {
+      "enabled": {
+       "type": "boolean",
+       "description": "--spectrum-port was given"
+      },
+      "detail_enabled": {
+       "type": "boolean",
+       "description": "--spectrum-detail was given"
+      },
+      "state": {
+       "enum": [
+        "disabled",
+        "no_data",
+        "stale",
+        "live"
+       ]
+      },
+      "rows_received": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "rows_dropped_rate": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "bad_packets": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "newest_age_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "gated_now": {
+       "type": "boolean"
+      }
+     }
+    },
+    "artifact_gate": {
+     "type": "object",
+     "required": [
+      "enabled",
+      "available",
+      "ambient",
+      "transients",
+      "events_scored_24h",
+      "events_flagged_24h"
+     ],
+     "description": "What the advisory flags run on. enabled false = --no-artifact-gate or the module missing (available false): no artifact_flags anywhere. ambient.records 0 = no temperature feed (every insect reads temp_unknown); transients.in_memory 0 = no dsp transients read (no burst evidence).",
+     "properties": {
+      "enabled": {
+       "type": "boolean"
+      },
+      "available": {
+       "type": "boolean"
+      },
+      "floor_c": {
+       "type": "number"
+      },
+      "temp_max_age_s": {
+       "type": "integer"
+      },
+      "burst_window_s": {
+       "type": "number"
+      },
+      "burst_min_transients": {
+       "type": "integer"
+      },
+      "ambient": {
+       "type": [
+        "object",
+        "null"
+       ],
+       "required": [
+        "records",
+        "first_hour_s",
+        "newest_hour_s",
+        "newest_age_s",
+        "skipped"
+       ],
+       "properties": {
+        "records": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "first_hour_s": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "newest_hour_s": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "newest_age_s": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "skipped": {
+         "type": "integer",
+         "minimum": 0
+        }
+       },
+       "additionalProperties": false
+      },
+      "transients": {
+       "type": [
+        "object",
+        "null"
+       ],
+       "required": [
+        "in_memory",
+        "first_t_s",
+        "last_t_s"
+       ],
+       "properties": {
+        "in_memory": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "first_t_s": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "last_t_s": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "additionalProperties": false
+      },
+      "events_scored_24h": {
+       "type": [
+        "integer",
+        "null"
+       ],
+       "minimum": 0
+      },
+      "events_flagged_24h": {
+       "type": [
+        "integer",
+        "null"
+       ],
+       "minimum": 0
+      }
+     },
+     "additionalProperties": false
+    }
+   },
+   "additionalProperties": false
+  },
+  "events": {
+   "type": "object",
+   "required": [
+    "since_s",
+    "until_s",
+    "in_region",
+    "non_species",
+    "total",
+    "limit",
+    "offset",
+    "frame",
+    "window_start_s",
+    "truncated_by_window",
+    "events",
+    "slot_mapping_reliable_from_s",
+    "group",
+    "artifact"
+   ],
+   "properties": {
+    "since_s": {
+     "type": "number"
+    },
+    "until_s": {
+     "type": "number"
+    },
+    "in_region": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "non_species": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "total": {
+     "type": "integer"
+    },
+    "limit": {
+     "type": "integer"
+    },
+    "offset": {
+     "type": "integer"
+    },
+    "frame": {
+     "type": "string"
+    },
+    "window_start_s": {
+     "type": "number"
+    },
+    "truncated_by_window": {
+     "type": "boolean"
+    },
+    "events": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "species",
+       "scientific",
+       "t_start_s",
+       "t_end_s",
+       "best_beam",
+       "best_beam_azimuth_deg",
+       "best_confidence",
+       "beams",
+       "reports",
+       "max_confidence",
+       "max_level_dbfs",
+       "in_region",
+       "non_species",
+       "provenance",
+       "slot_mapping_unreliable",
+       "group"
+      ],
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "species": {
+        "type": "string"
+       },
+       "scientific": {
+        "type": "string"
+       },
+       "t_start_s": {
+        "type": "number"
+       },
+       "t_end_s": {
+        "type": "number"
+       },
+       "best_beam": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "best_beam_azimuth_deg": {
+        "type": "number"
+       },
+       "best_confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+       },
+       "beams": {
+        "type": "array",
+        "items": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 8
+        },
+        "minItems": 1,
+        "maxItems": 8
+       },
+       "reports": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "max_confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+       },
+       "max_level_dbfs": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "in_region": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "non_species": {
+        "type": "boolean"
+       },
+       "provenance": {
+        "const": "model_opinion"
+       },
+       "slot_mapping_unreliable": {
+        "type": "boolean"
+       },
+       "group": {
+        "enum": [
+         "bird",
+         "insect",
+         "amphibian",
+         "mammal",
+         "other-bio",
+         "mechanical"
+        ]
+       },
+       "artifact_flags": {
+        "$ref": "#/$defs/artifact_flags"
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "slot_mapping_reliable_from_s": {
+     "type": "number"
+    },
+    "group": {
+     "enum": [
+      "bird",
+      "insect",
+      "amphibian",
+      "mammal",
+      "other-bio",
+      "mechanical",
+      "bio",
+      "any"
+     ]
+    },
+    "artifact": {
+     "enum": [
+      "any",
+      "none",
+      "only"
+     ],
+     "description": "Echo of the `artifact` query parameter: any (default) = every event, none = leave out the flagged events (level suspect or likely), only = just the flagged events."
+    }
+   },
+   "additionalProperties": false
+  },
+  "density": {
+   "type": "object",
+   "required": [
+    "since_s",
+    "until_s",
+    "bucket_s",
+    "in_region",
+    "non_species",
+    "group",
+    "total",
+    "n_rows",
+    "data_first_s",
+    "data_last_s",
+    "frame",
+    "slot_mapping_reliable_from_s",
+    "window_start_s",
+    "truncated_by_window",
+    "rows",
+    "artifact"
+   ],
+   "properties": {
+    "since_s": {
+     "type": "number"
+    },
+    "until_s": {
+     "type": "number"
+    },
+    "bucket_s": {
+     "type": "integer",
+     "minimum": 60,
+     "maximum": 86400
+    },
+    "in_region": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "non_species": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "group": {
+     "enum": [
+      "bird",
+      "insect",
+      "amphibian",
+      "mammal",
+      "other-bio",
+      "mechanical",
+      "bio",
+      "any"
+     ]
+    },
+    "total": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "n_rows": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "data_first_s": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "data_last_s": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "frame": {
+     "type": "string"
+    },
+    "slot_mapping_reliable_from_s": {
+     "type": "number"
+    },
+    "window_start_s": {
+     "type": "number"
+    },
+    "truncated_by_window": {
+     "type": "boolean"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "t_s",
+       "species",
+       "scientific",
+       "group",
+       "best_beam",
+       "events",
+       "max_confidence"
+      ],
+      "properties": {
+       "t_s": {
+        "type": "number"
+       },
+       "species": {
+        "type": "string"
+       },
+       "scientific": {
+        "type": "string"
+       },
+       "group": {
+        "enum": [
+         "bird",
+         "insect",
+         "amphibian",
+         "mammal",
+         "other-bio",
+         "mechanical"
+        ]
+       },
+       "best_beam": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "events": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "max_confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "artifact": {
+     "enum": [
+      "any",
+      "none",
+      "only"
+     ],
+     "description": "Echo of the `artifact` query parameter: any (default) = every event, none = leave out the flagged events (level suspect or likely), only = just the flagged events."
+    }
+   },
+   "additionalProperties": false
+  },
+  "species": {
+   "type": "object",
+   "required": [
+    "since_s",
+    "until_s",
+    "in_region",
+    "non_species",
+    "frame",
+    "species",
+    "events_total",
+    "group",
+    "groups",
+    "unclassified",
+    "unclassified_total",
+    "artifact",
+    "artifact_events_total",
+    "artifact_unscored_events"
+   ],
+   "properties": {
+    "since_s": {
+     "type": "number"
+    },
+    "until_s": {
+     "type": "number"
+    },
+    "in_region": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "non_species": {
+     "enum": [
+      "true",
+      "false",
+      "any"
+     ]
+    },
+    "frame": {
+     "type": "string"
+    },
+    "species": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "species",
+       "scientific",
+       "events",
+       "reports",
+       "first_seen_s",
+       "last_seen_s",
+       "bounds_exact",
+       "max_confidence",
+       "in_region",
+       "non_species",
+       "beam_events",
+       "hourly_counts",
+       "group",
+       "active_hours",
+       "events_per_active_hour",
+       "chorus",
+       "artifact_events"
+      ],
+      "properties": {
+       "species": {
+        "type": "string"
+       },
+       "scientific": {
+        "type": "string"
+       },
+       "events": {
+        "type": "integer"
+       },
+       "reports": {
+        "type": "integer"
+       },
+       "first_seen_s": {
+        "type": "number"
+       },
+       "last_seen_s": {
+        "type": "number"
+       },
+       "bounds_exact": {
+        "type": "boolean"
+       },
+       "max_confidence": {
+        "type": "number"
+       },
+       "in_region": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "non_species": {
+        "type": "boolean"
+       },
+       "beam_events": {
+        "type": "array",
+        "items": {
+         "type": "integer"
+        },
+        "minItems": 8,
+        "maxItems": 8
+       },
+       "hourly_counts": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "required": [
+          "hour_s",
+          "events"
+         ],
+         "properties": {
+          "hour_s": {
+           "type": "integer"
+          },
+          "events": {
+           "type": "integer"
+          }
+         },
+         "additionalProperties": false
+        }
+       },
+       "group": {
+        "enum": [
+         "bird",
+         "insect",
+         "amphibian",
+         "mammal",
+         "other-bio",
+         "mechanical"
+        ]
+       },
+       "active_hours": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "events_per_active_hour": {
+        "type": "number",
+        "minimum": 0
+       },
+       "chorus": {
+        "type": "boolean"
+       },
+       "artifact_events": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Flagged events among the events counted in `events` (0 for groups the gate does not score, and for the part of a row that comes from rollups)."
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "events_total": {
+     "type": "integer"
+    },
+    "group": {
+     "enum": [
+      "bird",
+      "insect",
+      "amphibian",
+      "mammal",
+      "other-bio",
+      "mechanical",
+      "bio",
+      "any"
+     ]
+    },
+    "groups": {
+     "type": "array",
+     "minItems": 6,
+     "maxItems": 6,
+     "items": {
+      "type": "object",
+      "required": [
+       "group",
+       "species",
+       "events",
+       "reports"
+      ],
+      "properties": {
+       "group": {
+        "enum": [
+         "bird",
+         "insect",
+         "amphibian",
+         "mammal",
+         "other-bio",
+         "mechanical"
+        ]
+       },
+       "species": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "events": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "reports": {
+        "type": "integer",
+        "minimum": 0
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "unclassified": {
+     "type": "array",
+     "maxItems": 20,
+     "items": {
+      "type": "object",
+      "required": [
+       "species",
+       "scientific",
+       "events"
+      ],
+      "properties": {
+       "species": {
+        "type": "string"
+       },
+       "scientific": {
+        "type": "string"
+       },
+       "events": {
+        "type": "integer",
+        "minimum": 1
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "unclassified_total": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "artifact": {
+     "enum": [
+      "any",
+      "none",
+      "only"
+     ],
+     "description": "Echo of the `artifact` query parameter: any (default) = every event, none = leave out the flagged events (level suspect or likely), only = just the flagged events."
+    },
+    "artifact_events_total": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Flagged (suspect or likely) in-memory events matching the other filters, whatever the artifact mode leaves out. Shown next to the toggle so hidden events are always counted."
+    },
+    "artifact_unscored_events": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Insect / mechanical events that come from hourly rollups: they carry no flags, so they are never scored and `artifact=none` cannot leave them out."
+    }
+   },
+   "additionalProperties": false
+  },
+  "beams_live": {
+   "type": "object",
+   "required": [
+    "window_s",
+    "windows",
+    "newest_age_s",
+    "edges_hz",
+    "beam_azimuth_deg",
+    "frame",
+    "calibrated",
+    "bands",
+    "zero_frac_mean",
+    "note",
+    "frame_kind"
+   ],
+   "properties": {
+    "window_s": {
+     "const": 60
+    },
+    "windows": {
+     "type": "integer"
+    },
+    "newest_age_s": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "edges_hz": {
+     "type": "array",
+     "items": {
+      "type": "array",
+      "items": {
+       "type": "integer"
+      },
+      "minItems": 2,
+      "maxItems": 2
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "beam_azimuth_deg": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "frame": {
+     "type": "string"
+    },
+    "calibrated": {
+     "type": "boolean"
+    },
+    "bands": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "band",
+       "lo_hz",
+       "hi_hz",
+       "power_mean_db",
+       "rel_ring_db",
+       "ring_power_mean_db",
+       "leader_beam",
+       "contrast_db"
+      ],
+      "properties": {
+       "band": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 7
+       },
+       "lo_hz": {
+        "type": "integer"
+       },
+       "hi_hz": {
+        "type": "integer"
+       },
+       "power_mean_db": {
+        "oneOf": [
+         {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 8,
+          "maxItems": 8
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "rel_ring_db": {
+        "oneOf": [
+         {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 8,
+          "maxItems": 8
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "ring_power_mean_db": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "leader_beam": {
+        "type": [
+         "integer",
+         "null"
+        ],
+        "minimum": 1,
+        "maximum": 8
+       },
+       "contrast_db": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "additionalProperties": false
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "zero_frac_mean": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "note": {
+     "type": "string"
+    },
+    "frame_kind": {
+     "enum": [
+      "panel",
+      "array",
+      "compass"
+     ]
+    }
+   },
+   "additionalProperties": false
+  },
+  "beams_stats": {
+   "type": "object",
+   "required": [
+    "band",
+    "band_lo_hz",
+    "band_hi_hz",
+    "since_s",
+    "until_s",
+    "granularity",
+    "effective_since_s",
+    "effective_until_s",
+    "frame",
+    "windows",
+    "hours",
+    "contrast_min_db",
+    "leader_band_hz",
+    "windows_with_contrast",
+    "zero_frac_mean",
+    "ring_power_mean_db",
+    "beams",
+    "hourly",
+    "note",
+    "steerable"
+   ],
+   "properties": {
+    "band": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7
+    },
+    "band_lo_hz": {
+     "type": "integer"
+    },
+    "band_hi_hz": {
+     "type": "integer"
+    },
+    "since_s": {
+     "type": "number"
+    },
+    "until_s": {
+     "type": "number"
+    },
+    "granularity": {
+     "type": "string"
+    },
+    "effective_since_s": {
+     "type": "integer"
+    },
+    "effective_until_s": {
+     "type": "integer"
+    },
+    "frame": {
+     "type": "string"
+    },
+    "windows": {
+     "type": "integer"
+    },
+    "hours": {
+     "type": "integer"
+    },
+    "contrast_min_db": {
+     "type": "number"
+    },
+    "leader_band_hz": {
+     "type": "array",
+     "items": {
+      "type": "integer"
+     },
+     "minItems": 2,
+     "maxItems": 2
+    },
+    "windows_with_contrast": {
+     "type": "integer"
+    },
+    "zero_frac_mean": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "ring_power_mean_db": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "beams": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "beam",
+       "azimuth_deg",
+       "power_mean_db",
+       "max_db",
+       "rel_ring_db",
+       "leader_share",
+       "mean_rel_ring_db_2_8khz"
+      ],
+      "properties": {
+       "beam": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "azimuth_deg": {
+        "type": "number"
+       },
+       "power_mean_db": {
+        "type": "number"
+       },
+       "max_db": {
+        "type": "number"
+       },
+       "rel_ring_db": {
+        "type": "number"
+       },
+       "leader_share": {
+        "type": [
+         "number",
+         "null"
+        ],
+        "minimum": 0,
+        "maximum": 1
+       },
+       "mean_rel_ring_db_2_8khz": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "additionalProperties": false
+     },
+     "minItems": 0,
+     "maxItems": 8
+    },
+    "hourly": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "hour_s",
+       "windows",
+       "zero_frac_mean",
+       "power_mean_db",
+       "rel_ring_db",
+       "contrast_windows",
+       "leader_share"
+      ],
+      "properties": {
+       "hour_s": {
+        "type": "integer"
+       },
+       "windows": {
+        "type": "integer"
+       },
+       "zero_frac_mean": {
+        "type": "number"
+       },
+       "power_mean_db": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 8,
+        "maxItems": 8
+       },
+       "rel_ring_db": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 8,
+        "maxItems": 8
+       },
+       "contrast_windows": {
+        "type": "integer"
+       },
+       "leader_share": {
+        "oneOf": [
+         {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 8,
+          "maxItems": 8
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "note": {
+     "type": "string"
+    },
+    "steerable": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "beams_heatmap": {
+   "type": "object",
+   "required": [
+    "band",
+    "band_lo_hz",
+    "band_hi_hz",
+    "since_s",
+    "until_s",
+    "bucket_s",
+    "t0_s",
+    "n_buckets",
+    "basis",
+    "frame",
+    "beam_azimuth_deg",
+    "windows",
+    "values_power_mean_db",
+    "slot_mapping_reliable_from_s",
+    "steerable"
+   ],
+   "properties": {
+    "band": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7
+    },
+    "band_lo_hz": {
+     "type": "integer"
+    },
+    "band_hi_hz": {
+     "type": "integer"
+    },
+    "since_s": {
+     "type": "number"
+    },
+    "until_s": {
+     "type": "number"
+    },
+    "bucket_s": {
+     "type": "integer",
+     "minimum": 10,
+     "maximum": 86400
+    },
+    "t0_s": {
+     "type": "integer"
+    },
+    "n_buckets": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 2000
+    },
+    "basis": {
+     "enum": [
+      "fine",
+      "hourly"
+     ]
+    },
+    "frame": {
+     "type": "string"
+    },
+    "beam_azimuth_deg": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "windows": {
+     "type": "integer"
+    },
+    "values_power_mean_db": {
+     "type": "array",
+     "items": {
+      "type": "array",
+      "items": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "slot_mapping_reliable_from_s": {
+     "type": "number"
+    },
+    "steerable": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "system": {
+   "type": "object",
+   "required": [
+    "since_s",
+    "now_s",
+    "stream",
+    "board",
+    "pipeline"
+   ],
+   "properties": {
+    "since_s": {
+     "type": "number"
+    },
+    "now_s": {
+     "type": "number"
+    },
+    "stream": {
+     "type": "object",
+     "required": [
+      "samples",
+      "n_samples",
+      "loss_pct_mean",
+      "latest",
+      "hourly",
+      "note"
+     ],
+     "properties": {
+      "samples": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "t_s",
+         "loss_pct",
+         "gaps",
+         "pps",
+         "state"
+        ],
+        "properties": {
+         "t_s": {
+          "type": "number"
+         },
+         "loss_pct": {
+          "type": "number"
+         },
+         "gaps": {
+          "type": "integer"
+         },
+         "pps": {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         "state": {
+          "type": [
+           "string",
+           "null"
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      },
+      "n_samples": {
+       "type": "integer"
+      },
+      "loss_pct_mean": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "latest": {
+       "type": [
+        "object",
+        "null"
+       ]
+      },
+      "hourly": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "hour_s",
+         "samples",
+         "loss_pct_mean",
+         "loss_pct_min",
+         "loss_pct_max",
+         "gaps_delta",
+         "state_counts"
+        ],
+        "properties": {
+         "hour_s": {
+          "type": "integer"
+         },
+         "samples": {
+          "type": "integer"
+         },
+         "loss_pct_mean": {
+          "type": "number"
+         },
+         "loss_pct_min": {
+          "type": "number"
+         },
+         "loss_pct_max": {
+          "type": "number"
+         },
+         "gaps_delta": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         },
+         "state_counts": {
+          "type": "object"
+         }
+        },
+        "additionalProperties": false
+       }
+      },
+      "note": {
+       "type": "string"
+      }
+     },
+     "additionalProperties": false
+    },
+    "board": {
+     "type": "object",
+     "required": [
+      "reachable",
+      "api_version",
+      "uptime_s",
+      "errors",
+      "temperatures",
+      "memory",
+      "load",
+      "network",
+      "monitor",
+      "dsps"
+     ],
+     "properties": {
+      "reachable": {
+       "type": "boolean"
+      },
+      "api_version": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "uptime_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "errors": {
+       "type": "object"
+      },
+      "temperatures": {
+       "type": "object",
+       "required": [
+        "local_c",
+        "remote_c",
+        "history"
+       ],
+       "properties": {
+        "local_c": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "remote_c": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "history": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "t_s",
+           "local_c",
+           "remote_c"
+          ],
+          "properties": {
+           "t_s": {
+            "type": "number"
+           },
+           "local_c": {
+            "type": [
+             "number",
+             "null"
+            ]
+           },
+           "remote_c": {
+            "type": [
+             "number",
+             "null"
+            ]
+           }
+          },
+          "additionalProperties": false
+         }
+        }
+       },
+       "additionalProperties": false
+      },
+      "memory": {
+       "type": "object",
+       "required": [
+        "memfree_kb",
+        "fwlog_free_kb",
+        "note"
+       ],
+       "properties": {
+        "memfree_kb": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "fwlog_free_kb": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "additionalProperties": false
+      },
+      "load": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "network": {
+       "type": [
+        "object",
+        "null"
+       ]
+      },
+      "monitor": {
+       "type": [
+        "object",
+        "null"
+       ],
+       "required": [
+        "count",
+        "cells_expected",
+        "stale",
+        "samples",
+        "note"
+       ],
+       "properties": {
+        "count": {
+         "type": "integer"
+        },
+        "cells_expected": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "stale": {
+         "type": [
+          "boolean",
+          "null"
+         ]
+        },
+        "note": {
+         "type": "string"
+        },
+        "samples": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "dsp",
+           "slot",
+           "mean_square_raw",
+           "peak_raw"
+          ],
+          "properties": {
+           "dsp": {
+            "type": "integer"
+           },
+           "slot": {
+            "type": "integer"
+           },
+           "mean_square_raw": {},
+           "peak_raw": {}
+          },
+          "additionalProperties": false
+         }
+        }
+       }
+      },
+      "dsps": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "dsp",
+         "role",
+         "observed_version"
+        ],
+        "properties": {
+         "dsp": {
+          "type": "integer"
+         },
+         "role": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "observed_version": {
+          "type": [
+           "string",
+           "null"
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "additionalProperties": false
+    },
+    "pipeline": {
+     "type": "object",
+     "required": [
+      "plugins",
+      "analysis_rx"
+     ],
+     "properties": {
+      "plugins": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "name",
+         "enabled",
+         "records",
+         "errors",
+         "dropped",
+         "last_error",
+         "last_t_age_s"
+        ],
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "enabled": {
+          "type": [
+           "boolean",
+           "null"
+          ]
+         },
+         "records": {},
+         "errors": {},
+         "dropped": {},
+         "last_error": {},
+         "last_t_age_s": {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      },
+      "analysis_rx": {}
+     },
+     "additionalProperties": false
+    }
+   },
+   "additionalProperties": false
+  },
+  "calibration": {
+   "type": "object",
+   "required": [
+    "calibrated",
+    "frame",
+    "beam_azimuth_deg",
+    "north_reference",
+    "measured_at",
+    "board_reachable",
+    "board_error",
+    "note",
+    "frame_kind",
+    "provisional",
+    "panel_up_dsp_azimuth_deg"
+   ],
+   "properties": {
+    "calibrated": {
+     "type": "boolean"
+    },
+    "frame": {
+     "type": "string"
+    },
+    "beam_azimuth_deg": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 8,
+     "maxItems": 8
+    },
+    "north_reference": {
+     "enum": [
+      "compass",
+      "array",
+      null
+     ]
+    },
+    "measured_at": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "board_reachable": {
+     "type": "boolean"
+    },
+    "board_error": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "note": {
+     "type": "string"
+    },
+    "frame_kind": {
+     "enum": [
+      "panel",
+      "array",
+      "compass"
+     ]
+    },
+    "provisional": {
+     "type": "boolean"
+    },
+    "panel_up_dsp_azimuth_deg": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "additionalProperties": false
+  },
+  "rollup": {
+   "type": "object",
+   "required": [
+    "k",
+    "v",
+    "kind",
+    "hour_s"
+   ],
+   "properties": {
+    "k": {
+     "const": "ui_rollup"
+    },
+    "v": {
+     "const": 1
+    },
+    "kind": {
+     "enum": [
+      "detections",
+      "beams",
+      "stream"
+     ]
+    },
+    "hour_s": {
+     "type": "integer",
+     "minimum": 0,
+     "multipleOf": 3600
+    }
+   },
+   "oneOf": [
+    {
+     "properties": {
+      "kind": {
+       "const": "detections"
+      },
+      "species": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "scientific",
+         "common",
+         "events",
+         "reports",
+         "max_confidence",
+         "beam_events",
+         "in_region",
+         "non_species"
+        ],
+        "properties": {
+         "scientific": {
+          "type": "string"
+         },
+         "common": {
+          "type": "string"
+         },
+         "events": {
+          "type": "integer"
+         },
+         "reports": {
+          "type": "integer"
+         },
+         "max_confidence": {
+          "type": "number"
+         },
+         "beam_events": {
+          "type": "array",
+          "items": {
+           "type": "integer"
+          },
+          "minItems": 8,
+          "maxItems": 8
+         },
+         "in_region": {
+          "type": [
+           "boolean",
+           "null"
+          ]
+         },
+         "non_species": {
+          "type": "boolean"
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": [
+      "species"
+     ]
+    },
+    {
+     "properties": {
+      "kind": {
+       "const": "beams"
+      },
+      "windows": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "zero_frac_mean": {
+       "type": "number"
+      },
+      "power_mean_db": {
+       "type": "array",
+       "items": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 8,
+        "maxItems": 8
+       },
+       "minItems": 8,
+       "maxItems": 8
+      },
+      "max_db": {
+       "type": "array",
+       "items": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 8,
+        "maxItems": 8
+       },
+       "minItems": 8,
+       "maxItems": 8
+      },
+      "contrast": {
+       "type": "object",
+       "required": [
+        "windows",
+        "leader_count",
+        "mean_rel_ring_db_2_8khz"
+       ],
+       "properties": {
+        "windows": {
+         "type": "integer"
+        },
+        "leader_count": {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         },
+         "minItems": 8,
+         "maxItems": 8
+        },
+        "mean_rel_ring_db_2_8khz": {
+         "oneOf": [
+          {
+           "type": "array",
+           "items": {
+            "type": "number"
+           },
+           "minItems": 8,
+           "maxItems": 8
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "additionalProperties": false
+      }
+     },
+     "required": [
+      "windows",
+      "zero_frac_mean",
+      "power_mean_db",
+      "max_db",
+      "contrast"
+     ]
+    },
+    {
+     "properties": {
+      "kind": {
+       "const": "stream"
+      },
+      "samples": {
+       "type": "integer"
+      },
+      "loss_pct_mean": {
+       "type": "number"
+      },
+      "loss_pct_min": {
+       "type": "number"
+      },
+      "loss_pct_max": {
+       "type": "number"
+      },
+      "gaps_delta": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "state_counts": {
+       "type": "object"
+      }
+     },
+     "required": [
+      "samples",
+      "loss_pct_mean",
+      "loss_pct_min",
+      "loss_pct_max",
+      "gaps_delta",
+      "state_counts"
+     ]
+    }
+   ]
+  },
+  "event": {
+   "type": "object",
+   "required": [
+    "event",
+    "frame",
+    "slot_mapping_reliable_from_s",
+    "trace_truncated",
+    "reports"
+   ],
+   "properties": {
+    "event": {
+     "type": "object",
+     "required": [
+      "id",
+      "species",
+      "scientific",
+      "t_start_s",
+      "t_end_s",
+      "best_beam",
+      "best_beam_azimuth_deg",
+      "best_confidence",
+      "beams",
+      "reports",
+      "max_confidence",
+      "max_level_dbfs",
+      "in_region",
+      "non_species",
+      "provenance",
+      "slot_mapping_unreliable",
+      "group"
+     ],
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "species": {
+       "type": "string"
+      },
+      "scientific": {
+       "type": "string"
+      },
+      "t_start_s": {
+       "type": "number"
+      },
+      "t_end_s": {
+       "type": "number"
+      },
+      "best_beam": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 8
+      },
+      "best_beam_azimuth_deg": {
+       "type": "number"
+      },
+      "best_confidence": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "beams": {
+       "type": "array",
+       "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "minItems": 1,
+       "maxItems": 8
+      },
+      "reports": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "max_confidence": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "max_level_dbfs": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "in_region": {
+       "type": [
+        "boolean",
+        "null"
+       ]
+      },
+      "non_species": {
+       "type": "boolean"
+      },
+      "provenance": {
+       "const": "model_opinion"
+      },
+      "slot_mapping_unreliable": {
+       "type": "boolean"
+      },
+      "group": {
+       "enum": [
+        "bird",
+        "insect",
+        "amphibian",
+        "mammal",
+        "other-bio",
+        "mechanical"
+       ]
+      },
+      "artifact_flags": {
+       "$ref": "#/$defs/artifact_flags"
+      }
+     },
+     "additionalProperties": false
+    },
+    "frame": {
+     "type": "string"
+    },
+    "slot_mapping_reliable_from_s": {
+     "type": "number"
+    },
+    "trace_truncated": {
+     "type": "boolean"
+    },
+    "reports": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "t_s",
+       "beam",
+       "beam_azimuth_deg",
+       "confidence",
+       "level_dbfs"
+      ],
+      "properties": {
+       "t_s": {
+        "type": "number"
+       },
+       "beam": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "beam_azimuth_deg": {
+        "type": "number"
+       },
+       "confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+       },
+       "level_dbfs": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "additionalProperties": false
+     },
+     "minItems": 1,
+     "maxItems": 500
+    }
+   },
+   "additionalProperties": false
+  },
+  "spectrum": {
+   "type": "object",
+   "description": "GET /api/spectrum (1.5.0). Magnitude rows only, never samples (specs/spectrum-packet.md). `rows[].bins` is base64 of n_bins uint8 values, dB = v * db_step + db_floor.",
+   "required": [
+    "spectrum_version",
+    "state",
+    "tier",
+    "beam",
+    "now_s",
+    "n_bins",
+    "edges_hz",
+    "db_floor",
+    "db_step",
+    "rows_per_s",
+    "hop_ms",
+    "rev",
+    "newest_idx",
+    "next_since",
+    "rows_missed",
+    "gated_now",
+    "limits",
+    "rows"
+   ],
+   "properties": {
+    "spectrum_version": {
+     "type": "string",
+     "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+     "description": "spectrum-packet contract version the rows follow"
+    },
+    "state": {
+     "enum": [
+      "disabled",
+      "no_data",
+      "stale",
+      "live",
+      "auth_required"
+     ],
+     "description": "disabled: no --spectrum-port; no_data: nothing received since start; stale: newest row older than 3 s (rows may still be listed); live; auth_required (1.6.0): the client is not authenticated (an open server, no token file, is not authenticated), no rows and nothing about the feed"
+    },
+    "tier": {
+     "enum": [
+      "standard",
+      "detail"
+     ]
+    },
+    "beam": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 8,
+     "description": "0 = power mean of the 8 beams"
+    },
+    "now_s": {
+     "type": "number"
+    },
+    "n_bins": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "edges_hz": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "description": "n_bins + 1 contiguous band edges; empty when disabled"
+    },
+    "db_floor": {
+     "type": "number"
+    },
+    "db_step": {
+     "type": "number"
+    },
+    "rows_per_s": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "hop_ms": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "rev": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "revision counter of this tier's ring; +1 whenever rows already served were rewritten (the tag latch)"
+    },
+    "newest_idx": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "next_since": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "pass as since= on the next request"
+    },
+    "rows_missed": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "rows after `since` that already left the ring"
+    },
+    "newest_age_s": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "gated_now": {
+     "type": "boolean",
+     "description": "the newest row is speech-suppressed (coarse)"
+    },
+    "gate": {
+     "type": "object",
+     "properties": {
+      "lookahead_s": {
+       "type": "number"
+      },
+      "gated_rows_in_ring": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "tag_latch": {
+       "type": "boolean"
+      }
+     }
+    },
+    "limits": {
+     "type": "object",
+     "required": [
+      "ring_s",
+      "max_rows",
+      "requests_per_s"
+     ],
+     "properties": {
+      "ring_s": {
+       "type": "number"
+      },
+      "max_rows": {
+       "type": "integer"
+      },
+      "requests_per_s": {
+       "type": "number"
+      }
+     }
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "idx",
+       "t_s",
+       "flags",
+       "gated",
+       "bins"
+      ],
+      "properties": {
+       "idx": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "t_s": {
+        "type": "number",
+        "description": "end of the row's window, epoch seconds"
+       },
+       "flags": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 7,
+        "description": "packet flag bits: 1 gated, 2 gap, 4 zero"
+       },
+       "gated": {
+        "type": "boolean"
+       },
+       "bins": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+       },
+       "levels": {
+        "type": "array",
+        "minItems": 8,
+        "maxItems": 8,
+        "items": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 255
+        },
+        "description": "only with compare=true: per beam, the uint8 level of the octave band `band` (power sum of its bins)"
+       }
+      }
+     }
+    }
+   },
+   "additionalProperties": true
+  },
+  "healthz": {
+   "type": "object",
+   "description": "GET /healthz (1.10.0), HEAD too: answered without a login on a server with or without one, after the Host check. Liveness only: no version, counter, path or state. `ts` = server epoch seconds.",
+   "required": ["ok", "ts"],
+   "properties": {
+    "ok": {"const": true},
+    "ts": {"type": "integer", "minimum": 0}
+   },
+   "additionalProperties": false
+  },
+  "session": {
+   "type": "object",
+   "description": "GET /api/session (1.7.0), answered only to an authenticated request (401 otherwise; 404 not_found on a server without a login). `csrf` is the token the page sends as X-CSRF-Token (or the form field csrf) on POST /logout and the passkey management POSTs; it is bound to this session and is useless without it. `via`: session (form or passkey login), cookie (the ?token= cookie), basic, tailnet (an allow-listed Tailscale identity from a loopback peer).",
+   "required": [
+    "authenticated",
+    "via",
+    "user",
+    "csrf",
+    "passkeys",
+    "tailnet_identity"
+   ],
+   "properties": {
+    "authenticated": {
+     "const": true
+    },
+    "via": {
+     "enum": [
+      "session",
+      "cookie",
+      "basic",
+      "tailnet"
+     ]
+    },
+    "user": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "the tailnet login when via is tailnet, else null"
+    },
+    "csrf": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    },
+    "passkeys": {
+     "type": "object",
+     "required": [
+      "enabled",
+      "count"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "enabled": {
+       "type": "boolean"
+      },
+      "count": {
+       "type": "integer",
+       "minimum": 0
+      }
+     }
+    },
+    "tailnet_identity": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "review_next": {
+   "type": "object",
+   "description": "GET /api/review/next (1.8.0)",
+   "required": [
+    "item",
+    "queue_depth"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "item": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "description": "one queue item, null when the queue is empty",
+     "required": [
+      "event_id",
+      "species",
+      "confidence",
+      "beams",
+      "best_beam",
+      "t_start_s",
+      "t_utc",
+      "in_region",
+      "group",
+      "non_species",
+      "reason"
+     ],
+     "properties": {
+      "event_id": {
+       "type": "string",
+       "pattern": "^[0-9]{1,16}-[a-z0-9-]{0,60}$"
+      },
+      "species": {
+       "type": "object",
+       "required": [
+        "common",
+        "scientific"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "common": {
+         "type": "string"
+        },
+        "scientific": {
+         "type": "string"
+        }
+       }
+      },
+      "confidence": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "beams": {
+       "type": "array",
+       "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "minItems": 1
+      },
+      "best_beam": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 8
+      },
+      "t_start_s": {
+       "type": "number"
+      },
+      "t_utc": {
+       "type": "string"
+      },
+      "in_region": {
+       "type": [
+        "boolean",
+        "null"
+       ]
+      },
+      "group": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "non_species": {
+       "type": "boolean"
+      },
+      "reason": {
+       "enum": [
+        "near",
+        "disagree",
+        "low",
+        "audit"
+       ]
+      },
+      "artifact_flags": {
+       "type": "object",
+       "required": [
+        "flags",
+        "level"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "flags": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "level": {
+         "enum": [
+          "none",
+          "suspect",
+          "likely"
+         ]
+        }
+       },
+       "description": "absent unless a report of the event carries artifact_flags"
+      },
+      "clip_png": {
+       "type": "string",
+       "pattern": "^/api/review/clip\\?id=[0-9]{13}-[a-z0-9]{1,24}-b[1-8]$",
+       "description": "absent when no clip PNG exists"
+      },
+      "clip_audio": {
+       "type": "string",
+       "pattern": "^/api/review/audio\\?id=[0-9]{13}-[a-z0-9]{1,24}-b[1-8]$",
+       "description": "since 1.9.0; absent unless the clip's audio file exists (visual-only or expired clip)"
+      },
+      "clip_span": {
+       "type": "object",
+       "description": "since 1.9.0; present with a clip: the clip and the event span in epoch seconds (the PNG covers clip_start_s..clip_end_s)",
+       "required": [
+        "clip_start_s",
+        "clip_end_s",
+        "event_start_s",
+        "event_end_s"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "clip_start_s": {
+         "type": "number"
+        },
+        "clip_end_s": {
+         "type": "number"
+        },
+        "event_start_s": {
+         "type": "number"
+        },
+        "event_end_s": {
+         "type": "number"
+        }
+       }
+      }
+     },
+     "additionalProperties": false
+    },
+    "queue_depth": {
+     "type": "integer",
+     "minimum": 0
+    }
+   }
+  },
+  "review_verdict": {
+   "type": "object",
+   "description": "POST /api/review/verdict and /api/review/skip (1.8.0); the next item",
+   "required": [
+    "item",
+    "queue_depth",
+    "recorded",
+    "label_id"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "item": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "description": "one queue item, null when the queue is empty",
+     "required": [
+      "event_id",
+      "species",
+      "confidence",
+      "beams",
+      "best_beam",
+      "t_start_s",
+      "t_utc",
+      "in_region",
+      "group",
+      "non_species",
+      "reason"
+     ],
+     "properties": {
+      "event_id": {
+       "type": "string",
+       "pattern": "^[0-9]{1,16}-[a-z0-9-]{0,60}$"
+      },
+      "species": {
+       "type": "object",
+       "required": [
+        "common",
+        "scientific"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "common": {
+         "type": "string"
+        },
+        "scientific": {
+         "type": "string"
+        }
+       }
+      },
+      "confidence": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "beams": {
+       "type": "array",
+       "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+       },
+       "minItems": 1
+      },
+      "best_beam": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 8
+      },
+      "t_start_s": {
+       "type": "number"
+      },
+      "t_utc": {
+       "type": "string"
+      },
+      "in_region": {
+       "type": [
+        "boolean",
+        "null"
+       ]
+      },
+      "group": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "non_species": {
+       "type": "boolean"
+      },
+      "reason": {
+       "enum": [
+        "near",
+        "disagree",
+        "low",
+        "audit"
+       ]
+      },
+      "artifact_flags": {
+       "type": "object",
+       "required": [
+        "flags",
+        "level"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "flags": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "level": {
+         "enum": [
+          "none",
+          "suspect",
+          "likely"
+         ]
+        }
+       },
+       "description": "absent unless a report of the event carries artifact_flags"
+      },
+      "clip_png": {
+       "type": "string",
+       "pattern": "^/api/review/clip\\?id=[0-9]{13}-[a-z0-9]{1,24}-b[1-8]$",
+       "description": "absent when no clip PNG exists"
+      },
+      "clip_audio": {
+       "type": "string",
+       "pattern": "^/api/review/audio\\?id=[0-9]{13}-[a-z0-9]{1,24}-b[1-8]$",
+       "description": "since 1.9.0; absent unless the clip's audio file exists (visual-only or expired clip)"
+      },
+      "clip_span": {
+       "type": "object",
+       "description": "since 1.9.0; present with a clip: the clip and the event span in epoch seconds (the PNG covers clip_start_s..clip_end_s)",
+       "required": [
+        "clip_start_s",
+        "clip_end_s",
+        "event_start_s",
+        "event_end_s"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "clip_start_s": {
+         "type": "number"
+        },
+        "clip_end_s": {
+         "type": "number"
+        },
+        "event_start_s": {
+         "type": "number"
+        },
+        "event_end_s": {
+         "type": "number"
+        }
+       }
+      }
+     },
+     "additionalProperties": false
+    },
+    "queue_depth": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "recorded": {
+     "type": "boolean",
+     "description": "false for skip and for an idempotent repeat"
+    },
+    "label_id": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "pattern": "^[0-9a-f]{16}$"
+    }
+   }
+  },
+  "review_stats": {
+   "type": "object",
+   "description": "GET /api/review/stats (1.8.0; no_clip 1.9.0)",
+   "required": [
+    "labelled",
+    "verdicts",
+    "target",
+    "species_at_target",
+    "queue_depth",
+    "no_clip",
+    "species"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "labelled": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "target": {
+     "const": 20
+    },
+    "verdicts": {
+     "type": "object",
+     "required": [
+      "correct",
+      "wrong",
+      "unsure",
+      "artifact"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "correct": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "wrong": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "unsure": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "artifact": {
+       "type": "integer",
+       "minimum": 0
+      }
+     }
+    },
+    "species_at_target": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "queue_depth": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "items the queue serves now (only events with a clip unless --review-allow-no-clip)"
+    },
+    "no_clip": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "since 1.9.0; candidate events (not skipped, not labelled) without a stored clip PNG or audio"
+    },
+    "species": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "species_key",
+       "labels"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "species_key": {
+        "type": "string"
+       },
+       "labels": {
+        "type": "integer",
+        "minimum": 1
+       }
+      }
+     }
+    }
+   }
+  },
+  "artifact_reason": {
+   "enum": [
+    "cold_insect",
+    "burst_coincident",
+    "temp_unknown",
+    "mechanical_label"
+   ]
+  },
+  "artifact_level": {
+   "enum": [
+    "none",
+    "suspect",
+    "likely"
+   ]
+  },
+  "artifact_flags": {
+   "type": "object",
+   "required": [
+    "v",
+    "flags",
+    "level",
+    "evidence"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "v": {
+     "const": 1
+    },
+    "flags": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/artifact_reason"
+     },
+     "description": "Sorted ascending."
+    },
+    "level": {
+     "$ref": "#/$defs/artifact_level",
+     "description": "likely = cold_insect present; suspect = burst_coincident without cold_insect; none otherwise (temp_unknown and mechanical_label alone are none)."
+    },
+    "evidence": {
+     "type": "object",
+     "required": [
+      "temp_c",
+      "temp_age_s",
+      "floor_c",
+      "burst_n",
+      "burst_spread_db",
+      "window_s"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "temp_c": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": -90,
+       "maximum": 60
+      },
+      "temp_age_s": {
+       "type": [
+        "integer",
+        "null"
+       ],
+       "minimum": 0
+      },
+      "floor_c": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "burst_n": {
+       "type": [
+        "integer",
+        "null"
+       ],
+       "minimum": 0
+      },
+      "burst_spread_db": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": 0
+      },
+      "window_s": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "exclusiveMinimum": 0
+      }
+     }
+    }
+   },
+   "not": {
+    "anyOf": [
+     {
+      "required": [
+       "lat"
+      ]
+     },
+     {
+      "required": [
+       "lon"
+      ]
+     },
+     {
+      "required": [
+       "latitude"
+      ]
+     },
+     {
+      "required": [
+       "longitude"
+      ]
+     }
+    ]
+   },
+   "description": "Advisory verdict of analysis/artifact_gate.py for one insect or mechanical event (contract artifact-gate 1.0.0, evaluated at the first report of the event). Absent for every other group. Nothing is ever dropped because of it."
+  }
+ }
+}

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:beam-response-map",
+  "title": "beam_response_map report (reports/beam_response_map.json)",
+  "description": "One JSON object written by analysis/beam_response_map.py: whether the level ratio between neighbouring DSP beams gives a repeatable bearing on natural sources, per source, band and beam-pattern epoch, against a matched null. Aggregates only: quantiles, counts and verdicts; no per-event vectors, audio, coordinates, county, file path or host name. Species names are regional-presence data: keep the file private. This schema is closed (additionalProperties false) so a producer cannot add a field silently; a new field is a contract change.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["k", "v", "generated_t", "inputs", "params", "filters", "segments", "epochs", "skipped_sources", "sources", "overall", "confound", "warnings"],
+  "properties": {
+    "k": {"const": "beam_response_map"},
+    "v": {"const": 1},
+    "generated_t": {"type": "number", "minimum": 0},
+    "inputs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["spatial_rows", "t_first", "t_last", "bands_rows", "bands_dropped", "rotated_read"],
+      "properties": {
+        "spatial_rows": {"$ref": "#/$defs/count"},
+        "t_first": {"type": "number"}, "t_last": {"type": "number"},
+        "bands_rows": {"type": ["integer", "null"], "minimum": 0},
+        "bands_dropped": {"type": ["integer", "null"], "minimum": 0},
+        "rotated_read": {"type": "boolean"}
+      }
+    },
+    "params": {
+      "type": "object", "additionalProperties": false,
+      "required": ["min_conf", "min_events", "max_spread_db", "baseline_s", "min_baseline_windows", "join_before_s", "join_after_s", "controls", "exclude_s", "seed", "boot", "perms", "cluster_gap_s", "bout_gap_s", "min_bouts", "speech_guard_s", "bands_max_rows", "thresholds"],
+      "properties": {
+        "min_conf": {"type": "number", "minimum": 0, "maximum": 1},
+        "min_events": {"$ref": "#/$defs/count"},
+        "max_spread_db": {"type": "number", "exclusiveMinimum": 0},
+        "baseline_s": {"type": "number", "exclusiveMinimum": 0},
+        "min_baseline_windows": {"$ref": "#/$defs/count"},
+        "join_before_s": {"type": "number", "minimum": 0},
+        "join_after_s": {"type": "number", "minimum": 0},
+        "controls": {"$ref": "#/$defs/count"},
+        "exclude_s": {"type": "number", "minimum": 0},
+        "seed": {"type": "integer"},
+        "boot": {"$ref": "#/$defs/count"},
+        "perms": {"$ref": "#/$defs/count"},
+        "cluster_gap_s": {"type": "number", "exclusiveMinimum": 0},
+        "bout_gap_s": {"description": "Detections of one source no more than this many seconds apart form one bout; every test runs on per-bout means.", "type": "number", "minimum": 0},
+        "min_bouts": {"$ref": "#/$defs/count"},
+        "speech_guard_s": {"description": "Events and control windows within this many seconds of a speech record are never used.", "type": "number", "minimum": 0},
+        "bands_max_rows": {"description": "Only the last N beam_bands rows are read (0 = all).", "$ref": "#/$defs/count"},
+        "thresholds": {
+          "type": "object", "additionalProperties": false,
+          "required": ["a1_min_db", "a1_control_factor", "r_min", "alpha", "tests", "alpha_adjusted"],
+          "properties": {
+            "a1_min_db": {"type": "number", "minimum": 0}, "a1_control_factor": {"type": "number", "minimum": 0},
+            "r_min": {"type": "number", "minimum": 0, "maximum": 1}, "alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+            "tests": {"$ref": "#/$defs/count"}, "alpha_adjusted": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+          }
+        }
+      }
+    },
+    "filters": {
+      "type": "object", "additionalProperties": false,
+      "required": ["spread_over_max", "bad_vector", "no_baseline", "bad_json"],
+      "properties": {"spread_over_max": {"$ref": "#/$defs/count"}, "bad_vector": {"$ref": "#/$defs/count"}, "no_baseline": {"$ref": "#/$defs/count"}, "bad_json": {"$ref": "#/$defs/count"}}
+    },
+    "segments": {
+      "description": "Row ranges analysed separately: recordings separated by gaps longer than params.cluster_gap_s and the owner's --epoch starts. Labels c<N> (cluster) and/or the epoch label.",
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["label", "t_first", "t_last", "rows"],
+        "properties": {"label": {"$ref": "#/$defs/safe"}, "t_first": {"type": ["number", "null"]}, "t_last": {"type": ["number", "null"]}, "rows": {"$ref": "#/$defs/count"}}
+      }
+    },
+    "epochs": {
+      "description": "The owner's beam-pattern epochs (--epoch), or null when none were given (the pattern history is not in config_history.jsonl).",
+      "type": ["array", "null"], "items": {"type": "object", "additionalProperties": false, "required": ["t_start", "label"], "properties": {"t_start": {"type": "number"}, "label": {"$ref": "#/$defs/safe"}}}
+    },
+    "skipped_sources": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "reason"], "properties": {"name": {"$ref": "#/$defs/safe"}, "reason": {"const": "non_biological"}}}},
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+    "overall": {
+      "type": "object", "additionalProperties": false, "required": ["verdict", "sources_evaluated", "reason"],
+      "properties": {"verdict": {"enum": ["go", "weak", "inconsistent", "no_go", "insufficient"]}, "sources_evaluated": {"$ref": "#/$defs/count"}, "reason": {"$ref": "#/$defs/safe"}}
+    },
+    "confound": {"$ref": "#/$defs/safe"},
+    "warnings": {"type": "array", "items": {"$ref": "#/$defs/safe"}}
+  },
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "safe": {"description": "free text without a path separator (no file path can be carried)", "type": "string", "pattern": "^[^/\\\\]*$"},
+    "q3": {"type": "object", "additionalProperties": false, "required": ["p25", "p50", "p75"], "properties": {"p25": {"type": "number"}, "p50": {"type": "number"}, "p75": {"type": "number"}}},
+    "q4": {"type": "object", "additionalProperties": false, "required": ["p25", "p50", "p75", "p95"], "properties": {"p25": {"type": "number"}, "p50": {"type": "number"}, "p75": {"type": "number"}, "p95": {"type": "number"}}},
+    "q5": {"type": "object", "additionalProperties": false, "required": ["p10", "p25", "p50", "p75", "p90"], "properties": {"p10": {"type": "number"}, "p25": {"type": "number"}, "p50": {"type": "number"}, "p75": {"type": "number"}, "p90": {"type": "number"}}},
+    "hist8": {"type": "array", "items": {"$ref": "#/$defs/count"}, "minItems": 8, "maxItems": 8},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "band", "kind", "suspected_artifact", "events", "epochs", "verdict", "reason"],
+      "properties": {
+        "name": {"$ref": "#/$defs/safe"},
+        "band": {"enum": ["spatial_200_4000", "b_50_125", "b_125_250", "b_250_500", "b_500_1000", "b_1000_2000", "b_2000_4000", "b_4000_8000", "b_8000_16000"]},
+        "kind": {"enum": ["species", "non_biological"]},
+        "suspected_artifact": {"type": "boolean"},
+        "events": {"$ref": "#/$defs/count"},
+        "epochs": {"type": "array", "items": {"$ref": "#/$defs/block"}},
+        "verdict": {"enum": ["go", "weak", "inconsistent", "no_go", "insufficient", "identical_expected"]},
+        "reason": {"$ref": "#/$defs/safe"}
+      }
+    },
+    "block": {
+      "description": "One source in one band and segment. An evaluated block (verdict go, weak or no_go) carries every statistic; a block with too few events or too many dropped carries only the counts and verdict `insufficient`.",
+      "type": "object", "additionalProperties": false,
+      "required": ["label", "events", "bouts", "joined", "unjoined", "events_no_baseline", "verdict", "reason"],
+      "properties": {
+        "label": {"$ref": "#/$defs/safe"}, "events": {"$ref": "#/$defs/count"}, "joined": {"$ref": "#/$defs/count"},
+        "bouts": {"description": "Independent observations: joined events grouped into bouts (gaps above params.bout_gap_s start a new bout). Rayleigh, bootstrap and permutation tests use this n.", "$ref": "#/$defs/count"},
+        "unjoined": {"$ref": "#/$defs/count"}, "events_no_baseline": {"$ref": "#/$defs/count"},
+        "event_duty": {"type": "number", "minimum": 0}, "baseline_contaminated": {"type": "boolean"},
+        "dominant_hist": {"$ref": "#/$defs/hist8"}, "control_dominant_hist": {"$ref": "#/$defs/hist8"},
+        "ratio_by_dominant": {"type": "array", "maxItems": 8, "items": {
+          "type": "object", "additionalProperties": false, "required": ["beam", "n", "to_next_db", "to_prev_db"],
+          "properties": {"beam": {"type": "integer", "minimum": 1, "maximum": 8}, "n": {"type": "integer", "minimum": 5}, "to_next_db": {"$ref": "#/$defs/q5"}, "to_prev_db": {"$ref": "#/$defs/q5"}}}},
+        "top2_db": {"$ref": "#/$defs/q3"},
+        "a1_db": {"$ref": "#/$defs/q4"},
+        "a1_ci95": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 2, "maxItems": 2},
+        "phase_deg": {"type": "number", "minimum": -180, "maximum": 180},
+        "R": {"type": "number", "minimum": 0, "maximum": 1.000001},
+        "rayleigh_p": {"type": "number", "minimum": 0, "maximum": 1},
+        "perm_p": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "control": {"type": "object", "additionalProperties": false, "required": ["n", "a1_db", "top2_db"], "properties": {"n": {"type": "integer", "minimum": 1}, "a1_db": {"$ref": "#/$defs/q4"}, "top2_db": {"$ref": "#/$defs/q3"}}},
+        "lag_scan": {"type": "array", "minItems": 21, "maxItems": 21, "items": {"type": "object", "additionalProperties": false, "required": ["shift_s", "median_a1_db"], "properties": {"shift_s": {"type": "integer", "minimum": -10, "maximum": 10}, "median_a1_db": {"type": ["number", "null"], "minimum": 0}}}},
+        "verdict": {"enum": ["go", "weak", "no_go", "insufficient"]},
+        "reason": {"$ref": "#/$defs/safe"}
+      },
+      "if": {"properties": {"verdict": {"enum": ["go", "weak", "no_go"]}}},
+      "then": {"required": ["event_duty", "baseline_contaminated", "dominant_hist", "control_dominant_hist", "ratio_by_dominant", "top2_db", "a1_db", "a1_ci95", "phase_deg", "R", "rayleigh_p", "perm_p", "control", "lag_scan"]},
+      "else": {"not": {"anyOf": [{"required": ["a1_db"]}, {"required": ["control"]}, {"required": ["lag_scan"]}]}}
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:pad-lane",
+  "title": "pad lane records (analysis/tags_pad.jsonl, analysis/clap_pad.jsonl)",
+  "description": "Output of the opt-in plugins tags_pad / clap_pad (analysis/pad_lane.py; host.py --tags-pad-s, --clap-pad-s): the tags (PANNs) / clap window zero-padded to pad_s seconds. Same record shape as tags / clap (analysis-records 1.3.0 provenance included since 1.1.0: model, claim, top_k, max_unstored_score) plus variant, pad_s, ms. Written to separate files; tags.jsonl and clap.jsonl never change. A tags_pad window flagged speech writes no record. Metadata only: no audio, no embedding. Receivers MUST ignore unknown fields.",
+  "x-contract-version": "1.1.0",
+  "x-discriminator": {"field": "k", "map": {"tags": "tags", "clap": "clap"}},
+  "x-files": {"tags_pad.jsonl": ["tags"], "clap_pad.jsonl": ["clap"]},
+  "oneOf": [{"$ref": "#/$defs/tags"}, {"$ref": "#/$defs/clap"}],
+  "$defs": {
+    "forbidden_keys": {"not": {"anyOf": [{"required": ["audio"]}, {"required": ["emb"]}, {"required": ["embedding"]}, {"required": ["samples"]}]}},
+    "t": {"type": "number", "description": "Unix seconds (float): end of the 5 s window."},
+    "beam": {"type": "integer", "minimum": 1, "maximum": 8},
+    "labelprob": {"type": "array", "prefixItems": [{"type": "string", "minLength": 1}, {"type": "number", "minimum": 0, "maximum": 1}], "items": false, "minItems": 2, "maxItems": 2},
+    "variant": {"const": "pad10", "description": "Input policy applied to the same weights: window followed by zeros up to pad_s. Same value as model.variant of analysis-records 1.3.0 when that contract is present."},
+    "pad_s": {"type": "number", "minimum": 5, "description": "Model input length in seconds."},
+    "ms": {"type": "number", "minimum": 0, "description": "Measured wall ms of the model call for this window."},
+    "model": {"type": "object", "required": ["name", "version", "variant", "sha256"], "description": "1.1.0, optional. As model of analysis-records 1.3.0: the production plugin's own name, version and sha256 (same weights), variant always pad10.",
+              "properties": {"name": {"type": "string", "minLength": 1}, "version": {"type": ["string", "null"]}, "variant": {"const": "pad10"}, "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}},
+    "claim": {"type": "object", "required": ["human_verified", "source"], "description": "1.1.0, optional. As claim of analysis-records 1.3.0.", "properties": {"human_verified": {"const": false}, "source": {"const": "model_opinion"}}},
+    "top_k": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "minItems": 5, "maxItems": 5, "description": "1.1.0, optional. The 5 best labels of the padded output, largest first, no probability floor (tags: human-voice classes not listed, as production)."},
+    "max_unstored_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "1.1.0, optional. Best score of a label that is not in top_k; null when the model exposes none."},
+    "tags": {
+      "type": "object", "allOf": [{"$ref": "#/$defs/forbidden_keys"}],
+      "required": ["k", "t", "beam", "speech_p", "speech_active", "top", "emb_stored", "variant", "pad_s", "ms"],
+      "properties": {"k": {"const": "tags"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"},
+                     "speech_p": {"type": "number", "minimum": 0, "exclusiveMaximum": 0.3}, "speech_active": {"const": false},
+                     "top": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "maxItems": 5}, "emb_stored": {"const": false},
+                     "variant": {"$ref": "#/$defs/variant"}, "pad_s": {"$ref": "#/$defs/pad_s"}, "ms": {"$ref": "#/$defs/ms"},
+                     "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "top_k": {"$ref": "#/$defs/top_k"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"}}
+    },
+    "clap": {
+      "type": "object", "allOf": [{"$ref": "#/$defs/forbidden_keys"}],
+      "required": ["k", "t", "beam", "top", "variant", "pad_s", "ms"],
+      "properties": {"k": {"const": "clap"}, "t": {"$ref": "#/$defs/t"}, "beam": {"$ref": "#/$defs/beam"},
+                     "top": {"type": "array", "items": {"$ref": "#/$defs/labelprob"}, "minItems": 3, "maxItems": 3},
+                     "variant": {"$ref": "#/$defs/variant"}, "pad_s": {"$ref": "#/$defs/pad_s"}, "ms": {"$ref": "#/$defs/ms"},
+                     "model": {"$ref": "#/$defs/model"}, "claim": {"$ref": "#/$defs/claim"}, "top_k": {"$ref": "#/$defs/top_k"}, "max_unstored_score": {"$ref": "#/$defs/max_unstored_score"}}
+    }
+  }
+}

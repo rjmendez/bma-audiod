@@ -1,0 +1,15 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "urn:bma:contract:ui-live",
+ "title": "ui-live text frames (GET /api/v2/live)",
+ "description": "The JSON text frames the live WebSocket sends next to its binary BMW1 frames: `hello` once after the handshake, `reset` when the ring's revision moved. Closed objects. Spectrum rows only: no audio, no label, no event.",
+ "x-contract-version": "1.0.0",
+ "oneOf": [{"$ref": "#/$defs/hello"}, {"$ref": "#/$defs/reset"}],
+ "$defs": {
+  "hello": {"type": "object", "additionalProperties": false, "required": ["k", "v", "tier", "beams", "n_bins", "rows_per_s"],
+            "properties": {"k": {"const": "hello"}, "v": {"const": 1}, "tier": {"const": "standard"}, "beams": {"const": 9}, "n_bins": {"const": 46}, "rows_per_s": {"const": 10}}},
+  "reset": {"type": "object", "additionalProperties": false, "required": ["k", "rev"],
+            "description": "Rows already sent were rewritten (the tag latch gated them): drop every row received so far; the whole ring follows as BMW1 frames.",
+            "properties": {"k": {"const": "reset"}, "rev": {"type": "integer", "minimum": 0}}}
+ }
+}

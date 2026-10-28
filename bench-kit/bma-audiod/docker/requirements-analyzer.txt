@@ -1,0 +1,16 @@
+# Direct dependencies of the analyzer and classifier, pinned to the versions the live audioeval venv runs.
+# torch is NOT listed: analyzer.Dockerfile installs torch==2.14.1 first from the variant's index (CPU or CUDA wheels).
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+librosa==1.0.0
+soundfile==0.14.0
+pillow==13.0.0
+resampy==0.4.3
+audioread==3.1.0
+birdnetlib==0.18.1
+tensorflow-cpu==2.21.0
+panns-inference==0.1.1
+torchlibrosa==0.1.0
+transformers==5.19.0
+huggingface_hub==2.2.0

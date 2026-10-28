@@ -1,0 +1,59 @@
+{
+ "band": 5,
+ "band_lo_hz": 2000,
+ "band_hi_hz": 4000,
+ "since_s": 1792951200.0,
+ "until_s": 1792951800.0,
+ "steerable": true,
+ "bucket_s": 300,
+ "t0_s": 1792951200,
+ "n_buckets": 2,
+ "basis": "fine",
+ "frame": "array frame (uncalibrated)",
+ "slot_mapping_reliable_from_s": 1792948601.0,
+ "beam_azimuth_deg": [
+  90,
+  45,
+  0,
+  315,
+  270,
+  225,
+  180,
+  135
+ ],
+ "windows": 6,
+ "values_power_mean_db": [
+  [
+   -14.69,
+   -14.69
+  ],
+  [
+   -30.0,
+   -30.0
+  ],
+  [
+   -14.69,
+   -14.69
+  ],
+  [
+   -30.0,
+   -30.0
+  ],
+  [
+   -30.0,
+   -30.0
+  ],
+  [
+   -30.0,
+   -30.0
+  ],
+  [
+   -30.0,
+   -30.0
+  ],
+  [
+   -30.0,
+   -30.0
+  ]
+ ]
+}

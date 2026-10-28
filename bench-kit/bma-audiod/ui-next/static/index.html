@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>BMA array</title>
+<link rel="stylesheet" href="app.css">
+<link rel="modulepreload" href="app.js">
+<link rel="modulepreload" href="review.js">
+</head>
+<body>
+<header id="top">
+  <h1>BMA array</h1>
+  <span id="state" class="pill" data-k="nodata" role="status">no data</span>
+  <span id="strip" class="strip" aria-label="Status"></span>
+  <span id="gate" class="pill" data-k="stale" hidden>speech suppressed</span>
+  <button id="listen-ind" class="pill rec" hidden aria-live="polite"></button>
+  <button id="theme" class="icon" aria-label="Toggle light or dark">&#9680;</button>
+</header>
+<nav id="nav" aria-label="Views">
+  <button data-view="live" aria-keyshortcuts="Alt+1">Live</button>
+  <button data-view="review" aria-keyshortcuts="Alt+2">Review <span id="rv-count" class="count"></span></button>
+  <button data-view="det" aria-keyshortcuts="Alt+3">Detections</button>
+  <button data-view="sys" aria-keyshortcuts="Alt+4">System</button>
+</nav>
+<main>
+  <section id="v-live" class="view" hidden aria-label="Live">
+    <div class="wf-wrap">
+      <div class="wf-inner">
+        <canvas id="wf" aria-label="Spectrum waterfall, 60 seconds, time runs left to right"></canvas>
+        <div id="wf-axis-y" class="axis-y" aria-hidden="true"></div>
+        <div id="wf-axis-x" class="axis-x" aria-hidden="true"><span>-60 s</span><span>-30 s</span><span>now</span></div>
+        <div id="wf-cursor" class="cursor" hidden></div>
+        <div id="wf-sel" class="selbox" hidden></div>
+        <div id="wf-marks" class="marks" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div id="inspect" class="inspect" aria-live="polite"></div>
+    <div id="beams" class="beams" role="radiogroup" aria-label="Beam"></div>
+    <div class="live-bar">
+      <button id="listen" class="primary" aria-keyshortcuts="L">Listen</button>
+      <button id="freeze" hidden>Freeze last 6 s</button>
+      <span id="listen-note" class="muted"></span>
+    </div>
+    <div id="ticker" class="ticker" aria-label="Latest detections"></div>
+  </section>
+
+  <section id="v-review" class="view" hidden aria-label="Review">
+    <details id="queue" class="queue" open>
+      <summary>List</summary>
+      <div id="tabs" class="seg" role="group" aria-label="List contents">
+        <button type="button" data-tab="clips" aria-pressed="true">Clips</button>
+        <button type="button" data-tab="review" aria-pressed="false">Queue</button>
+      </div>
+      <ul id="list"></ul>
+    </details>
+    <div class="viewer">
+      <div class="viewbar">
+        <label>View <select id="tf"></select></label>
+        <label>Scale <select id="scale"><option value="lin">linear</option><option value="log">log</option><option value="mel">mel</option><option value="erb">ERB</option><option value="bark">Bark</option></select></label>
+        <label class="check"><input id="auto" type="checkbox" checked> Auto range</label>
+        <label class="check" id="truth-row"><input id="truth" type="checkbox" checked> Truth boxes</label>
+        <details id="adv" class="adv">
+          <summary>Analysis settings</summary>
+          <label>Window <select id="win"></select></label>
+          <label>FFT <select id="nfft"><option>256</option><option>512</option><option selected>1024</option><option>2048</option><option>4096</option></select></label>
+          <label>Hop <select id="hop"><option value="240">5 ms</option><option value="480" selected>10 ms</option><option value="960">20 ms</option></select></label>
+          <label>Pad <select id="pad"><option value="1" selected>x1</option><option value="2">x2</option><option value="4">x4</option></select></label>
+          <label>Colour <select id="cmap"><option>viridis</option><option>magma</option><option>inferno</option><option>cividis</option><option>turbo</option></select></label>
+          <label>Range <input id="lo" type="number" step="5" value="-100" aria-label="Range minimum"> to <input id="hi" type="number" step="5" value="-20" aria-label="Range maximum"> <span id="unit">dB</span></label>
+        </details>
+      </div>
+      <img id="clip-png" class="clip-png" alt="Stored spectrogram of the clip" hidden>
+      <div class="stage-frame"><div class="stage" id="stage"><canvas id="rwf"></canvas><canvas id="ov" aria-label="Spectrogram: drag to select a time and frequency box"></canvas></div></div>
+      <div class="strips"><canvas id="sLevel"></canvas><canvas id="sFlux"></canvas></div>
+      <div class="bar timebar">
+        <button id="zoomOut" class="icon" title="Zoom out (X)" aria-label="Zoom out">&minus;</button><button id="zoomIn" class="icon" title="Zoom in (Z)" aria-label="Zoom in">+</button>
+        <input id="pan" type="range" min="0" max="1000" value="0" aria-label="Pan">
+        <button id="mode" title="Drag selects a box or pans (V)" aria-pressed="true">Select</button>
+      </div>
+      <div class="bar beam-bar" id="rbeams" role="group" aria-label="Beams"></div>
+      <div class="bar aud">
+        <button id="play" title="Play / pause (Space)">Play</button>
+        <button id="loop" title="Loop the selection (L)" aria-pressed="false">Loop</button>
+        <label>Speed <select id="rate"><option value="1" selected>1x</option><option value="0.5">1/2</option><option value="0.25">1/4</option><option value="0.125">1/8</option></select></label>
+        <label class="check"><input id="keep" type="checkbox"> Keep pitch</label>
+        <label>Listen <select id="amode"><option value="normal">direct</option><option value="hetero">heterodyne</option><option value="divide">divide</option></select></label>
+        <label>to <input id="atarget" type="number" value="1500" step="100" min="200" max="5000"> Hz</label>
+        <label>by <input id="adiv" type="number" value="8" step="1" min="2" max="32"></label>
+        <label class="check"><input id="solo" type="checkbox" checked> Box only</label>
+        <label class="check"><input id="lvl" type="checkbox" checked> Level match</label>
+      </div>
+      <div class="bar rev" id="rev" hidden>
+        <button data-v="correct" title="Correct (Y)">Correct</button><button data-v="wrong" title="Wrong (N)">Wrong</button><button data-v="unsure" title="Unsure (U)">Unsure</button><button data-v="artifact" title="Artifact (A)">Artifact</button>
+        <label>If wrong <select id="wr"><option>non_bird_sound</option><option>mechanical</option><option>insect_or_amphibian</option><option>other_species</option><option>no_sound_seen</option></select></label>
+        <label class="check"><input id="blind" type="checkbox" checked> Blind (hide the model claim)</label>
+        <button id="markBtn" title="Mark the selection (Enter)">Mark</button><span id="claim" class="claim" role="status"></span>
+      </div>
+      <details class="rec-box"><summary>Record to be saved</summary><pre id="rec" class="rec"></pre></details>
+    </div>
+  </section>
+
+  <section id="v-det" class="view" hidden aria-label="Detections"></section>
+  <section id="v-sys" class="view" hidden aria-label="System"></section>
+</main>
+<dialog id="consent" aria-labelledby="consent-h">
+  <form method="dialog">
+    <h2 id="consent-h">Listen live</h2>
+    <p>Live audio from the array's location will play on this device. Nobody nearby is told. The server records nothing while you listen. The session ends after 10 minutes, when you press Stop, or after 30 seconds in a hidden tab.</p>
+    <label class="check"><input type="checkbox" id="consent-ok"> I have the right to listen to this place.</label>
+    <div class="row"><button value="cancel">Cancel</button><button id="consent-go" value="go" class="primary" disabled>Start listening</button></div>
+  </form>
+</dialog>
+<script src="engine/dsp.js"></script>
+<script src="engine/colormaps.js"></script>
+<script src="engine/render.js"></script>
+<script src="engine/audition.js"></script>
+<script src="adapter.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

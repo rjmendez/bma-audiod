@@ -1,0 +1,76 @@
+{
+ "started": 1792886220.8377147,
+ "device": "cuda:1",
+ "plugins": {
+  "dsp": {
+   "enabled": true,
+   "windows": 2673,
+   "records": 3369,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.3116856,
+   "last_error": null
+  },
+  "spatial": {
+   "enabled": true,
+   "windows": 2673,
+   "records": 2673,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.3116856,
+   "last_error": null
+  },
+  "tags": {
+   "enabled": true,
+   "windows": 447,
+   "records": 447,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.1972272,
+   "last_error": null,
+   "speech_fraction": 0.0
+  },
+  "clap": {
+   "enabled": true,
+   "windows": 253,
+   "records": 253,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889708.1859052,
+   "last_error": null
+  },
+  "birds": {
+   "enabled": true,
+   "windows": 611,
+   "records": 28,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.1972272,
+   "last_error": null
+  },
+  "novelty": {
+   "enabled": true,
+   "note": "fed by tags embeddings (non-speech only)"
+  }
+ },
+ "rx": {
+  "datagrams": 5111376,
+  "bad": 0,
+  "gaps": 22960
+ },
+ "t": 1792889713.1833825,
+ "uptime_s": 3492.0,
+ "contiguous_s": 10.0,
+ "embeddings_stored": 446,
+ "audio_written": false,
+ "meta": {
+  "write_errors": 0,
+  "rotate_fallbacks": 0,
+  "taxa_missing": 0,
+  "taxa_unmapped": 3,
+  "config_write_errors": 0,
+  "rollup_errors": 0,
+  "daily_flush_errors": 0,
+  "history_dropped": 0
+ }
+}

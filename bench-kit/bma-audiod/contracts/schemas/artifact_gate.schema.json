@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:artifact-gate",
+  "title": "artifact gate: the advisory `artifact_flags` object and the offline replay report (artifact_replay.json)",
+  "description": "The document root is the replay report written by tools/artifact_replay.py (a whole-document schema, no record discriminator). `$defs.artifact_flags` is the advisory verdict that analysis/artifact_gate.py returns for one detection; later phases embed it in ui-http events and analysis-records bird rows by $ref. The gate never deletes or rewrites a record. PRIVACY: neither object carries a location, a hidden (human-voice) label or the time of a hidden-label row; the replay holds one integer `excluded_hidden_reports` for those rows. Readers MUST ignore unknown fields of the report; an `artifact_flags` with an unknown `v` is absent.",
+  "x-contract-version": "1.0.0",
+  "$ref": "#/$defs/replay_report",
+  "$defs": {
+    "reason": {"enum": ["cold_insect", "burst_coincident", "temp_unknown", "mechanical_label"]},
+    "level": {"enum": ["none", "suspect", "likely"]},
+    "artifact_flags": {
+      "type": "object",
+      "required": ["v", "flags", "level", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "v": {"const": 1},
+        "flags": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reason"}, "description": "Sorted ascending."},
+        "level": {"$ref": "#/$defs/level", "description": "likely = cold_insect present; suspect = burst_coincident without cold_insect; none otherwise (temp_unknown and mechanical_label alone are none)."},
+        "evidence": {
+          "type": "object",
+          "required": ["temp_c", "temp_age_s", "floor_c", "burst_n", "burst_spread_db", "window_s"],
+          "additionalProperties": false,
+          "properties": {
+            "temp_c": {"type": ["number", "null"], "minimum": -90, "maximum": 60},
+            "temp_age_s": {"type": ["integer", "null"], "minimum": 0},
+            "floor_c": {"type": ["number", "null"]},
+            "burst_n": {"type": ["integer", "null"], "minimum": 0},
+            "burst_spread_db": {"type": ["number", "null"], "minimum": 0},
+            "window_s": {"type": ["number", "null"], "exclusiveMinimum": 0}
+          }
+        }
+      },
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]}]}
+    },
+    "count": {"type": "integer", "minimum": 0},
+    "flag_pair": {"type": "object", "required": ["flagged", "unflagged"], "additionalProperties": false,
+                  "properties": {"flagged": {"$ref": "#/$defs/count"}, "unflagged": {"$ref": "#/$defs/count"}}},
+    "matrix": {
+      "type": "object", "required": ["lt5", "5to15", "ge15", "unknown"], "additionalProperties": false,
+      "properties": {"lt5": {"$ref": "#/$defs/flag_pair"}, "5to15": {"$ref": "#/$defs/flag_pair"}, "ge15": {"$ref": "#/$defs/flag_pair"}, "unknown": {"$ref": "#/$defs/flag_pair"}}
+    },
+    "sweep_cell": {"type": "object", "required": ["n", "cold", "any"], "additionalProperties": false,
+                   "properties": {"n": {"$ref": "#/$defs/count"}, "cold": {"$ref": "#/$defs/count"}, "any": {"$ref": "#/$defs/count"}}},
+    "sweep_bins": {"type": "object", "required": ["lt5", "5to15", "ge15", "unknown"], "additionalProperties": false,
+                   "properties": {"lt5": {"$ref": "#/$defs/sweep_cell"}, "5to15": {"$ref": "#/$defs/sweep_cell"}, "ge15": {"$ref": "#/$defs/sweep_cell"}, "unknown": {"$ref": "#/$defs/sweep_cell"}}},
+    "hours": {"type": "object", "required": ["flagged", "unflagged"], "additionalProperties": false,
+              "properties": {"flagged": {"type": "array", "minItems": 24, "maxItems": 24, "items": {"$ref": "#/$defs/count"}},
+                             "unflagged": {"type": "array", "minItems": 24, "maxItems": 24, "items": {"$ref": "#/$defs/count"}}}},
+    "span": {"type": "object", "required": ["t_min", "t_max"], "properties": {"t_min": {"type": ["integer", "null"]}, "t_max": {"type": ["integer", "null"]}}},
+    "replay_report": {
+      "type": "object",
+      "required": ["k", "v", "params", "experiment", "coverage", "counts", "confusion", "flagged_by_hour", "transient_hours", "burst_by_temp_bin", "floor_sweep",
+                   "flagged_by_group", "out_of_scope_counts", "excluded_hidden_reports"],
+      "properties": {
+        "k": {"const": "artifact_replay"},
+        "v": {"const": 1},
+        "params": {"type": "object", "required": ["since", "until", "floor_c", "window_s", "burst_min_transients", "burst_max_spread_db", "sweep_c"],
+                   "properties": {"since": {"type": ["integer", "null"]}, "until": {"type": ["integer", "null"]}, "floor_c": {"type": "number"}, "window_s": {"type": "number"},
+                                  "burst_min_transients": {"type": "integer"}, "burst_max_spread_db": {"type": "number"}, "sweep_c": {"type": "array", "items": {"type": "number"}}}},
+        "experiment": {"type": "object", "required": ["valid"], "properties": {"valid": {"type": "boolean", "description": "false when coverage.degraded: a degraded run is not a result."}}},
+        "coverage": {
+          "type": "object",
+          "required": ["inputs", "reports", "transients", "ambient", "taxa", "skipped_lines", "transients_cover_reports", "ambient_covers_reports", "degraded", "degraded_reasons"],
+          "properties": {
+            "inputs": {"type": "array", "description": "Every input file read, with its byte size and sha256: the identity of the snapshot.",
+                       "items": {"type": "object", "required": ["name", "bytes", "sha256"], "additionalProperties": false,
+                                 "properties": {"name": {"type": "string", "pattern": "^(analysis|history)/[A-Za-z0-9_.]+$"}, "bytes": {"$ref": "#/$defs/count"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
+            "reports": {"allOf": [{"$ref": "#/$defs/span"}, {"type": "object", "required": ["n_rows", "n_in_window"], "properties": {"n_rows": {"$ref": "#/$defs/count"}, "n_in_window": {"$ref": "#/$defs/count"}}}]},
+            "transients": {"allOf": [{"$ref": "#/$defs/span"}, {"type": "object", "required": ["n"], "properties": {"n": {"$ref": "#/$defs/count"}}}]},
+            "ambient": {"allOf": [{"$ref": "#/$defs/span"}, {"type": "object", "required": ["n"], "properties": {"n": {"$ref": "#/$defs/count"}}}]},
+            "taxa": {"type": "object", "required": ["ok"], "properties": {"ok": {"type": "boolean"}}},
+            "skipped_lines": {"type": "object", "required": ["birds", "dsp", "ambient"], "additionalProperties": {"$ref": "#/$defs/count"}},
+            "transients_cover_reports": {"type": ["boolean", "null"]},
+            "ambient_covers_reports": {"type": ["boolean", "null"]},
+            "degraded": {"type": "boolean"},
+            "degraded_reasons": {"type": "array", "uniqueItems": true, "items": {"enum": ["ambient_missing", "birds_missing", "dsp_missing", "no_reports_in_window", "scope_violation", "taxa_missing", "transients_do_not_cover_reports"]}}
+          }
+        },
+        "counts": {"type": "object", "required": ["by_group", "by_label", "flags", "levels"],
+                   "properties": {"by_group": {"type": "object", "additionalProperties": {"$ref": "#/$defs/matrix"}}, "by_label": {"type": "object", "additionalProperties": {"$ref": "#/$defs/matrix"}},
+                                  "flags": {"type": "object", "required": ["cold_insect", "burst_coincident", "temp_unknown", "mechanical_label"], "additionalProperties": false,
+                                            "properties": {"cold_insect": {"$ref": "#/$defs/count"}, "burst_coincident": {"$ref": "#/$defs/count"}, "temp_unknown": {"$ref": "#/$defs/count"}, "mechanical_label": {"$ref": "#/$defs/count"}}},
+                                  "levels": {"type": "object", "required": ["none", "suspect", "likely"], "additionalProperties": false,
+                                             "properties": {"none": {"$ref": "#/$defs/count"}, "suspect": {"$ref": "#/$defs/count"}, "likely": {"$ref": "#/$defs/count"}}}}},
+        "confusion": {"type": "object", "required": ["cold_burst", "cold_noburst", "warm_burst", "warm_noburst", "unknown_burst", "unknown_noburst"], "additionalProperties": {"$ref": "#/$defs/count"},
+                      "description": "Insect reports: temperature rule (cold = below the floor, warm = at or above, unknown) against the burst rule. Temperature is NOT ground truth, only biological implausibility."},
+        "flagged_by_hour": {"type": "object", "required": ["utc_hour", "by_date", "transient_rate_by_temp_bin"],
+                            "properties": {"utc_hour": {"$ref": "#/$defs/hours"}, "by_date": {"type": "object", "additionalProperties": {"$ref": "#/$defs/hours"}},
+                                           "transient_rate_by_temp_bin": {"type": "object", "additionalProperties": {"type": "object", "required": ["hours", "median_per_hour", "max_per_hour"],
+                                                                          "properties": {"hours": {"$ref": "#/$defs/count"}, "median_per_hour": {"type": ["number", "null"]}, "max_per_hour": {"type": ["integer", "null"]}}}}}},
+        "transient_hours": {"type": "array", "description": "Durable evidence: the transient count of every UTC hour that has any dsp record, with that hour's ambient temperature (null when unknown). Survives the rotation of dsp.jsonl.",
+                            "items": {"type": "object", "required": ["t_hour_utc", "n", "temp_c"], "additionalProperties": false,
+                                      "properties": {"t_hour_utc": {"type": "integer", "multipleOf": 3600}, "n": {"$ref": "#/$defs/count"}, "temp_c": {"type": ["number", "null"]}}}},
+        "burst_by_temp_bin": {"type": "object", "required": ["lt5", "5to15", "ge15", "unknown"], "additionalProperties": {"type": "object", "required": ["n", "burst"],
+                              "properties": {"n": {"$ref": "#/$defs/count"}, "burst": {"$ref": "#/$defs/count"}}}},
+        "floor_sweep": {"type": "object", "additionalProperties": {"type": "object", "required": ["by_bin", "by_species"],
+                        "properties": {"by_bin": {"$ref": "#/$defs/sweep_bins"}, "by_species": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sweep_bins"}}}}},
+        "flagged_by_group": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}, "description": "Zero for every group but insect."},
+        "out_of_scope_counts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"},
+                                "description": "Per label outside the gate's scope: reports seen. Informational; the gate never flags them (flagged_by_group is the check, scope_violation the degraded reason)."},
+        "excluded_hidden_reports": {"$ref": "#/$defs/count", "description": "Number of rows dropped before any computation because their label is hidden by policy. One integer: no row, time, beam or confidence."},
+        "timing": {"type": "object", "required": ["wall_s", "cpu_s"], "properties": {"wall_s": {"type": "number"}, "cpu_s": {"type": "number"}}}
+      },
+      "not": {"anyOf": [{"required": ["lat"]}, {"required": ["lon"]}, {"required": ["latitude"]}, {"required": ["longitude"]}]}
+    }
+  }
+}

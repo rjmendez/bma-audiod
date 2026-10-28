@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:beam-coherence",
+  "title": "beam_coherence records (analysis/coherence.jsonl)",
+  "description": "One record per closed epoch-aligned interval (default 60 s) from the analyzer's `coherence` plugin (analysis/coherence.py): how phase-coherent the 8 beam outputs are with each other, per ring-adjacent beam pair and octave band, conditioned on quiet / active windows. Windows in which a beam is muted (DSP gating) or the audio is lost are counted but excluded. MSC values are RAW (biased upward by about `msc_floor` for independent noise). Metadata only; no audio is ever stored. Receivers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"beam_coherence": "beam_coherence"}},
+  "x-files": {"coherence.jsonl": ["beam_coherence"]},
+  "oneOf": [{"$ref": "#/$defs/beam_coherence"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "beam8_unit": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}, "minItems": 8, "maxItems": 8},
+    "beam8_deg": {"type": "array", "items": {"type": "number", "minimum": -180, "maximum": 180}, "minItems": 8, "maxItems": 8},
+    "beam8_nonneg": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 8, "maxItems": 8},
+    "beam8_num": {"type": "array", "items": {"type": "number"}, "minItems": 8, "maxItems": 8},
+    "cell": {
+      "description": "Statistics of one (band, condition) over the windows of the interval; index = ring-adjacent pair p = (beam p, beam (p+1)%8), beams counted from 0. `ph_deg` is the circular mean over windows of the cross-phase at the band's centre bin (`centre_hz`), positive = beam p+1 lags beam p; `ph_spread_deg` its circular standard deviation sqrt(-2 ln R). `lag_*` in samples at 48 kHz (positive = beam p+1 lags beam p), `lag_spread` = p90 - p10. `dl_db_p50` = band level of beam p minus beam p+1. `msc_unmasked_p50` is present only for bands that contain tonal-mask bins and is the median with those bins included.",
+      "type": "object",
+      "required": ["n", "msc_p10", "msc_p50", "msc_p90", "ph_deg", "ph_spread_deg", "lag_p50", "lag_spread", "dl_db_p50"],
+      "properties": {
+        "n": {"type": "integer", "minimum": 1},
+        "msc_p10": {"$ref": "#/$defs/beam8_unit"}, "msc_p50": {"$ref": "#/$defs/beam8_unit"}, "msc_p90": {"$ref": "#/$defs/beam8_unit"},
+        "ph_deg": {"$ref": "#/$defs/beam8_deg"}, "ph_spread_deg": {"$ref": "#/$defs/beam8_nonneg"},
+        "lag_p50": {"$ref": "#/$defs/beam8_num"}, "lag_spread": {"$ref": "#/$defs/beam8_nonneg"},
+        "dl_db_p50": {"$ref": "#/$defs/beam8_num"},
+        "msc_unmasked_p50": {"$ref": "#/$defs/beam8_unit"}
+      }
+    },
+    "band": {
+      "description": "One octave band. `n_quiet` / `n_active` windows were stored for the condition (a cell with fewer than 5 windows is null), `mid` windows lay between the quiet and active margins, `warmup` windows came before the noise floor was known. n_quiet + n_active + mid + warmup = win_used.",
+      "type": "object",
+      "required": ["n_quiet", "n_active", "quiet", "active", "mid", "warmup"],
+      "properties": {
+        "n_quiet": {"$ref": "#/$defs/count"}, "n_active": {"$ref": "#/$defs/count"},
+        "quiet": {"type": ["object", "null"], "if": {"type": "object"}, "then": {"$ref": "#/$defs/cell"}},
+        "active": {"type": ["object", "null"], "if": {"type": "object"}, "then": {"$ref": "#/$defs/cell"}},
+        "mid": {"$ref": "#/$defs/count"}, "warmup": {"$ref": "#/$defs/count"}
+      }
+    },
+    "full_cond": {
+      "description": "Median MSC of all 28 beam pairs (i < j, row-major: 0-1, 0-2, ... 0-7, 1-2, ... 6-7) in each of the 3 broad bands; `n` = windows per band; a null msc entry means fewer than 3 windows in that band.",
+      "type": ["object", "null"], "if": {"type": "object"},
+      "then": {"required": ["n", "msc"],
+               "properties": {"n": {"type": "array", "items": {"$ref": "#/$defs/count"}, "minItems": 3, "maxItems": 3},
+                              "msc": {"type": "array", "minItems": 3, "maxItems": 3,
+                                      "items": {"type": "array", "minItems": 28, "maxItems": 28,
+                                                "items": {"type": ["number", "null"], "minimum": 0, "maximum": 1}}}}}
+    },
+    "beam_coherence": {
+      "type": "object",
+      "required": ["k", "v", "t", "t0", "span_s", "win_total", "win_used", "win_gated", "win_dead", "win_nonfinite", "level_dbfs", "nfft", "seg_hop",
+                   "nseg_per_win", "msc_floor", "gate_db", "dead_dbfs", "quiet_margin_db", "active_margin_db", "edges_hz", "centre_hz",
+                   "mask_hz", "mask_tol_hz", "tonal_bins", "bands", "xc_lag", "full"],
+      "properties": {
+        "k": {"const": "beam_coherence"},
+        "v": {"const": 1, "description": "Record format major version."},
+        "t": {"type": "number", "minimum": 0, "description": "End of the interval, Unix seconds (t0 + span_s)."},
+        "t0": {"type": "number", "minimum": 0, "description": "Start of the epoch-aligned interval: a multiple of span_s."},
+        "span_s": {"type": "number", "exclusiveMinimum": 0},
+        "partial": {"const": true, "description": "Optional, present only when true: the interval is incomplete (flushed at analyzer shutdown, or the analyzer started late in it); span_s is still the nominal length, win_total says how many windows it holds."},
+        "win_total": {"$ref": "#/$defs/count"}, "win_used": {"$ref": "#/$defs/count"}, "win_gated": {"$ref": "#/$defs/count"},
+        "win_dead": {"$ref": "#/$defs/count"}, "win_nonfinite": {"$ref": "#/$defs/count"},
+        "level_dbfs": {"type": ["number", "null"], "maximum": 0, "description": "Mean over the used windows of the window's mean-square level over the beams, dB re full scale; null without a used window."},
+        "nfft": {"const": 4096}, "seg_hop": {"const": 2048},
+        "nseg_per_win": {"type": "integer", "minimum": 1, "description": "Welch segments per 1 s window (22)."},
+        "msc_floor": {"type": "number", "minimum": 0, "maximum": 1, "description": "1 / K_eff: the mean raw MSC of independent signals (about 0.048). The raw mean is c + (1 - c)^2 / K_eff for a true MSC c, K_eff = 1 / msc_floor; invert it (spec: Bias)."},
+        "gate_db": {"type": "number"}, "dead_dbfs": {"type": "number"},
+        "quiet_margin_db": {"type": "number"}, "active_margin_db": {"type": "number"},
+        "edges_hz": {"const": [[50, 125], [125, 250], [250, 500], [500, 1000], [1000, 2000], [2000, 4000], [4000, 8000], [8000, 16000]]},
+        "centre_hz": {"$ref": "#/$defs/beam8_nonneg"},
+        "mask_hz": {"type": "array", "items": {"type": "number"}},
+        "mask_tol_hz": {"type": "number", "minimum": 0},
+        "tonal_bins": {"type": "array", "items": {"$ref": "#/$defs/count"}, "minItems": 8, "maxItems": 8},
+        "bands": {"type": "array", "items": {"$ref": "#/$defs/band"}, "minItems": 8, "maxItems": 8},
+        "xc_lag": {"type": ["array", "null"], "if": {"type": "array"}, "then": {"$ref": "#/$defs/beam8_num"}, "description": "Per pair: median over the used windows of the broadband (125-4000 Hz) cross-correlation lag in samples (largest-magnitude peak, parabolic interpolation on its magnitude; polarity is not reported, see ph_deg); null with fewer than 5 used windows."},
+        "full": {
+          "type": "object", "required": ["edges_hz", "pairs", "cond"],
+          "properties": {"edges_hz": {"const": [[125, 1000], [1000, 4000], [4000, 12000]]}, "pairs": {"const": "i<j row-major"},
+                         "cond": {"type": "object", "required": ["quiet", "active"],
+                                  "properties": {"quiet": {"$ref": "#/$defs/full_cond"}, "active": {"$ref": "#/$defs/full_cond"}}}}
+        }
+      }
+    }
+  }
+}

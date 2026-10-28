@@ -1,0 +1,113 @@
+{
+ "valid": [
+  {
+   "name": "plain block, slot 0",
+   "slot": 0,
+   "flags": 0,
+   "seq": 7,
+   "block": 284267690,
+   "samples": [
+    0,
+    1,
+    -1,
+    8388607,
+    -8388608,
+    100,
+    -100,
+    12345
+   ],
+   "hex": "424d41410100000007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff39300000"
+  },
+  {
+   "name": "zero block (flags bit0)",
+   "slot": 3,
+   "flags": 1,
+   "seq": 8,
+   "block": 284267946,
+   "samples": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hex": "424d41410100030108000000aa95f110080000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+   "name": "block after a hole (flags bit1 gap_before)",
+   "slot": 5,
+   "flags": 2,
+   "seq": 9,
+   "block": 284268202,
+   "samples": [
+    -2048,
+    2048,
+    0,
+    7,
+    -7,
+    1,
+    -1,
+    3
+   ],
+   "hex": "424d41410100050209000000aa96f1100800000000f8ffff000800000000000007000000f9ffffff01000000ffffffff03000000"
+  },
+  {
+   "name": "both flags, seq and block wrap at 2**32",
+   "slot": 7,
+   "flags": 3,
+   "seq": 4294967295,
+   "block": 4294967040,
+   "samples": [
+    5,
+    -5,
+    4,
+    -4
+   ],
+   "hex": "424d414101000703ffffffff00ffffff0400000005000000fbffffff04000000fcffffff"
+  },
+  {
+   "name": "empty payload",
+   "slot": 1,
+   "flags": 0,
+   "seq": 1,
+   "block": 1000,
+   "samples": [],
+   "hex": "424d41410100010001000000e803000000000000"
+  }
+ ],
+ "invalid": [
+  {
+   "name": "bad magic",
+   "hex": "585858580100000007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff39300000",
+   "code": "magic"
+  },
+  {
+   "name": "bad version",
+   "hex": "424d41410200000007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff39300000",
+   "code": "version"
+  },
+  {
+   "name": "slot 8",
+   "hex": "424d41410100080007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff39300000",
+   "code": "slot"
+  },
+  {
+   "name": "truncated body",
+   "hex": "424d41410100000007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff",
+   "code": "length"
+  },
+  {
+   "name": "reserved byte set",
+   "hex": "424d41410101000007000000aa94f110080000000000000001000000ffffffffffff7f00000080ff640000009cffffff39300000",
+   "code": "reserved"
+  },
+  {
+   "name": "header only 19 bytes",
+   "hex": "424d41410100000007000000aa94f110080000",
+   "code": "short"
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "item": {
+  "event_id": "1791997838000-poecile-carolinensis",
+  "species": {
+   "common": "Carolina Chickadee",
+   "scientific": "Poecile carolinensis"
+  },
+  "confidence": 0.78,
+  "beams": [
+   1,
+   2
+  ],
+  "best_beam": 1,
+  "t_start_s": 1791997838.0,
+  "t_utc": "2026-10-14T17:10:38Z",
+  "in_region": true,
+  "group": "bird",
+  "non_species": false,
+  "reason": "near",
+  "clip_png": "/api/review/clip?id=1791997838000-poecilecarolinensis-b1",
+  "clip_audio": "/api/review/audio?id=1791997838000-poecilecarolinensis-b1",
+  "clip_span": {
+   "clip_start_s": 1791997837.0,
+   "clip_end_s": 1791997843.0,
+   "event_start_s": 1791997838.0,
+   "event_end_s": 1791997841.0
+  }
+ },
+ "queue_depth": 37
+}

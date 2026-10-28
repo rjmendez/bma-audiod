@@ -1,0 +1,11 @@
+{
+ "authenticated": true,
+ "via": "session",
+ "user": null,
+ "csrf": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+ "passkeys": {
+  "enabled": true,
+  "count": 1
+ },
+ "tailnet_identity": false
+}

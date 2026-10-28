@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:eval-report",
+  "title": "eval_report (output of tools/eval_models.py)",
+  "description": "One JSON document: owner_verdict labels vs each model variant. Metadata only: no audio, no coordinates, no path. Human-voice labels never appear. Readers MUST ignore unknown fields of a later minor version.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["k", "v", "generated_s", "thresholds", "input", "variants", "pairs"],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "ncount": {"type": ["integer", "null"], "minimum": 0},
+    "rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "status": {"enum": ["ok", "not_measurable"]},
+    "hits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact", "near", "exact_rate", "with_near_rate"],
+      "properties": {"exact": {"$ref": "#/$defs/count"}, "near": {"$ref": "#/$defs/count"}, "exact_rate": {"$ref": "#/$defs/rate"}, "with_near_rate": {"$ref": "#/$defs/rate"}}
+    },
+    "mcnemar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["a_only", "b_only", "p"],
+      "properties": {"a_only": {"$ref": "#/$defs/count"}, "b_only": {"$ref": "#/$defs/count"}, "p": {"type": "number", "minimum": 0, "maximum": 1}}
+    }
+  },
+  "properties": {
+    "k": {"const": "eval_report"},
+    "v": {"const": 1},
+    "generated_s": {"type": "number"},
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_n", "min_species_n", "min_bin_n"],
+      "properties": {"min_n": {"type": "integer", "minimum": 1}, "min_species_n": {"type": "integer", "minimum": 1}, "min_bin_n": {"type": "integer", "minimum": 1}}
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label_records", "label_events", "unmatched_labels", "excluded_human_voice", "excluded_unsure", "excluded_artifact", "species_truth", "rejections"],
+      "properties": {"label_records": {"$ref": "#/$defs/count"}, "label_events": {"$ref": "#/$defs/count"}, "unmatched_labels": {"$ref": "#/$defs/count"},
+                     "excluded_human_voice": {"$ref": "#/$defs/count"}, "excluded_unsure": {"$ref": "#/$defs/count"}, "excluded_artifact": {"$ref": "#/$defs/count"},
+                     "species_truth": {"$ref": "#/$defs/count"}, "rejections": {"$ref": "#/$defs/count"}}
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "level", "score", "mv", "n", "no_output", "min_n", "status", "reason", "top1", "top5", "per_truth", "rejections", "calibration"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "level": {"enum": ["species", "class"]},
+          "score": {"enum": ["prob", "logit"]},
+          "mv": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Model versions recorded on the rows (provenance field mv); empty when the rows carry none."},
+          "n": {"$ref": "#/$defs/count"},
+          "no_output": {"$ref": "#/$defs/count"},
+          "min_n": {"type": "integer", "minimum": 1},
+          "status": {"$ref": "#/$defs/status"},
+          "reason": {"enum": [null, "n_below_min", "no_neighbourhood_map"]},
+          "top1": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hits"}]},
+          "top5": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hits"}]},
+          "per_truth": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["key", "n", "top1_exact", "top1_near", "top5_exact", "top5_near", "top1_exact_rate", "status"],
+              "properties": {"key": {"type": "string", "minLength": 1}, "n": {"$ref": "#/$defs/count"}, "top1_exact": {"$ref": "#/$defs/ncount"}, "top1_near": {"$ref": "#/$defs/ncount"},
+                             "top5_exact": {"$ref": "#/$defs/ncount"}, "top5_near": {"$ref": "#/$defs/ncount"}, "top1_exact_rate": {"$ref": "#/$defs/rate"}, "status": {"$ref": "#/$defs/status"}}
+            }
+          },
+          "rejections": {
+            "oneOf": [{"type": "null"}, {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["n", "repeats_claim", "by_reason"],
+              "properties": {"n": {"$ref": "#/$defs/count"}, "repeats_claim": {"$ref": "#/$defs/count"},
+                             "by_reason": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["reason", "n", "repeats_claim"],
+                                                                        "properties": {"reason": {"enum": ["other_species", "non_bird_sound", "mechanical", "insect_or_amphibian", "no_sound_seen", "none"]},
+                                                                                       "n": {"$ref": "#/$defs/count"}, "repeats_claim": {"$ref": "#/$defs/count"}}}}}
+            }]
+          },
+          "calibration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "reason", "n", "ece", "ece_n", "bins"],
+            "properties": {
+              "status": {"enum": ["ok", "not_measurable", "not_applicable"]},
+              "reason": {"enum": [null, "n_below_min", "score_not_probability"]},
+              "n": {"$ref": "#/$defs/count"},
+              "min_n": {"type": "integer", "minimum": 1},
+              "ece": {"$ref": "#/$defs/rate"},
+              "ece_n": {"$ref": "#/$defs/ncount"},
+              "bins": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["bin", "n", "mean_conf", "owner_correct_rate", "status"],
+                  "properties": {"bin": {"enum": ["0.0-0.1", "0.1-0.2", "0.2-0.3", "0.3-0.4", "0.4-0.5", "0.5-0.6", "0.6-0.7", "0.7-0.8", "0.8-0.9", "0.9-1.0"]},
+                                 "n": {"$ref": "#/$defs/count"}, "mean_conf": {"$ref": "#/$defs/rate"}, "owner_correct_rate": {"$ref": "#/$defs/rate"}, "status": {"$ref": "#/$defs/status"}}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["a", "b", "n_paired", "min_n", "status", "reason", "top1", "top5"],
+        "properties": {
+          "a": {"type": "string", "minLength": 1}, "b": {"type": "string", "minLength": 1},
+          "n_paired": {"$ref": "#/$defs/count"}, "min_n": {"type": "integer", "minimum": 1},
+          "status": {"$ref": "#/$defs/status"},
+          "reason": {"enum": [null, "n_below_min", "level_differs"]},
+          "top1": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/mcnemar"}]},
+          "top5": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/mcnemar"}]}
+        }
+      }
+    }
+  }
+}

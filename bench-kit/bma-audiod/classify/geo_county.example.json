@@ -1,0 +1,6 @@
+{
+  "lat": 0.0,
+  "lon": 0.0,
+  "note": "EXAMPLE, replace lat/lon (0.0, 0.0 is mid-ocean and would drop every land bird). Copy to geo_county.local.json (untracked; install_task.ps1 pins it as app/geo_county.json). COUNTY LEVEL ONLY: the centre of a 0.25 degree cell, derived from the base-station position and rounded before use. The precise position is never stored here, logged, or committed. Optional keys: week (1-48), threshold (location-model cutoff, default 0.03).",
+  "threshold": 0.002
+}

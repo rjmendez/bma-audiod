@@ -1,0 +1,15 @@
+# Lint and format config for the kit. scripts/check_ruff.py runs it in CI (guards area); `python -m ruff format .` formats.
+# Files under active edit by other branches stay excluded until those merge; lift an entry when its branch lands.
+line-length = 160
+target-version = "py312"
+extend-exclude = [
+  "findings",            # historical one-off analysis scripts (sk2.py has an undefined name); not part of the product
+  "ui-next",             # ui-phase work in flight
+  "ui/bma_ui.py",
+  "ui/ws.py",
+  "pc/bma_spectrum.py",
+]
+
+[lint]
+# Behaviour-critical first: syntax errors, invalid comparisons and format strings, undefined names. Widen one family per PR.
+select = ["E9", "F63", "F7", "F82"]

@@ -1,0 +1,172 @@
+{
+ "since_s": 1792947600.0,
+ "until_s": 1792951800.0,
+ "bucket_s": 60,
+ "in_region": "any",
+ "non_species": "any",
+ "group": "any",
+ "artifact": "any",
+ "total": 18,
+ "n_rows": 17,
+ "data_first_s": 1792948600,
+ "data_last_s": 1792951400,
+ "frame": "array frame (uncalibrated)",
+ "slot_mapping_reliable_from_s": 1792948601.0,
+ "window_start_s": 1792779000,
+ "truncated_by_window": false,
+ "rows": [
+  {
+   "t_s": 1792948560.0,
+   "species": "Alpha Wren",
+   "scientific": "Aus a",
+   "group": "other-bio",
+   "best_beam": 3,
+   "events": 1,
+   "max_confidence": 0.8
+  },
+  {
+   "t_s": 1792948560.0,
+   "species": "Bravo Owl",
+   "scientific": "Bus b",
+   "group": "other-bio",
+   "best_beam": 4,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792948620.0,
+   "species": "Charlie Jay",
+   "scientific": "Cus c",
+   "group": "other-bio",
+   "best_beam": 1,
+   "events": 1,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792948620.0,
+   "species": "Delta Dove",
+   "scientific": "Dus d",
+   "group": "other-bio",
+   "best_beam": 5,
+   "events": 2,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792948620.0,
+   "species": "Echo Elsewhere",
+   "scientific": "Eus e",
+   "group": "other-bio",
+   "best_beam": 6,
+   "events": 1,
+   "max_confidence": 0.9
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 1,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 2,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 3,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 4,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 5,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949580.0,
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "group": "insect",
+   "best_beam": 6,
+   "events": 1,
+   "max_confidence": 0.7
+  },
+  {
+   "t_s": 1792949700.0,
+   "species": "Dog",
+   "scientific": "Dog",
+   "group": "mammal",
+   "best_beam": 7,
+   "events": 1,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792949700.0,
+   "species": "Engine",
+   "scientific": "Engine",
+   "group": "mechanical",
+   "best_beam": 2,
+   "events": 1,
+   "max_confidence": 0.8
+  },
+  {
+   "t_s": 1792949700.0,
+   "species": "Eastern Narrow-mouthed Toad",
+   "scientific": "Gastrophryne carolinensis",
+   "group": "amphibian",
+   "best_beam": 5,
+   "events": 1,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792949700.0,
+   "species": "White-tailed Deer",
+   "scientific": "Odocoileus virginianus",
+   "group": "mammal",
+   "best_beam": 6,
+   "events": 1,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792949700.0,
+   "species": "Zzyzx Mystery",
+   "scientific": "Zzyzx fictus",
+   "group": "other-bio",
+   "best_beam": 1,
+   "events": 1,
+   "max_confidence": 0.6
+  },
+  {
+   "t_s": 1792951380.0,
+   "species": "Alpha Wren",
+   "scientific": "Aus a",
+   "group": "other-bio",
+   "best_beam": 7,
+   "events": 1,
+   "max_confidence": 0.4
+  }
+ ]
+}

@@ -1,0 +1,1227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:beam-agreement",
+  "title": "beam_agreement_report (output of analysis/beam_agreement.py)",
+  "description": "One JSON document written by the offline tool analysis/beam_agreement.py: does 'the same species on two beams in the SAME window' tell more than BirdNET's confidence, or only diffuseness? Metadata only, no audio, no coordinates; the shareable form holds group aggregates (species names only with --private-detail, key private_detail). `decision` is computed by the tool from the ordered rules of specs/beam-agreement.md. Readers MUST ignore unknown fields of a later minor version. 1.1.0: optional block shuffle_null (misassociation null of the agreement statistic; report-only).",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "required": [
+    "k",
+    "v",
+    "generated_s",
+    "input",
+    "definition",
+    "bins",
+    "sensitivity_gap_3s",
+    "negative_control",
+    "outcomes",
+    "decision",
+    "reasons"
+  ],
+  "properties": {
+    "k": {
+      "const": "beam_agreement_report"
+    },
+    "v": {
+      "const": 1
+    },
+    "generated_s": {
+      "type": "number",
+      "description": "Unix seconds; a parameter (--generated-s) so a golden run is reproducible."
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "reports",
+        "events",
+        "gap_s",
+        "first_t",
+        "last_t",
+        "garbage_lines",
+        "filtered_skipped",
+        "beam_pairs_with_unequal_t",
+        "taxa_missing",
+        "ambient_records",
+        "ambient_garbage",
+        "labels"
+      ],
+      "properties": {
+        "reports": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gap_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "first_t": {
+          "type": "number"
+        },
+        "last_t": {
+          "type": "number"
+        },
+        "garbage_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "filtered_skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beam_pairs_with_unequal_t": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Consecutive windows of one event whose t differ by under 0.5 s but are not equal: the shared-t_wall assumption is broken when this is > 0."
+        },
+        "taxa_missing": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ambient_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ambient_garbage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "labels": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "n_lines",
+                "garbage_lines",
+                "unsure_dropped",
+                "duplicates",
+                "usable"
+              ],
+              "properties": {
+                "n_lines": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "garbage_lines": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unsure_dropped": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "duplicates": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "usable": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "definition": {
+      "type": "object",
+      "required": [
+        "tier",
+        "top2_cap",
+        "window_equality",
+        "label_gap_s",
+        "min_labels_per_arm"
+      ],
+      "properties": {
+        "tier": {
+          "const": "concurrent"
+        },
+        "top2_cap": {
+          "const": true
+        },
+        "window_equality": {
+          "const": "exact_t"
+        },
+        "label_gap_s": {
+          "const": 3.0
+        },
+        "min_labels_per_arm": {
+          "const": 90
+        }
+      },
+      "additionalProperties": false
+    },
+    "bins": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "lo",
+          "hi",
+          "n",
+          "tiers",
+          "multi_frac",
+          "mean_windows",
+          "concurrent_windows",
+          "adjacent_concurrent_windows",
+          "adjacent_share",
+          "confirmed_nonadjacent",
+          "by_duration"
+        ],
+        "properties": {
+          "lo": {
+            "type": "number"
+          },
+          "hi": {
+            "type": "number"
+          },
+          "n": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tiers": {
+            "type": "object",
+            "required": [
+              "confirmed",
+              "probable",
+              "single_beam"
+            ],
+            "properties": {
+              "confirmed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "probable": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "single_beam": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "multi_frac": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "mean_windows": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "concurrent_windows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "adjacent_concurrent_windows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "adjacent_share": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "confirmed_nonadjacent": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "by_duration": {
+            "type": "object",
+            "required": [
+              "1",
+              "2-3",
+              ">=4"
+            ],
+            "properties": {
+              "1": {
+                "type": "object",
+                "required": [
+                  "n",
+                  "multi_frac"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "multi_frac": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "2-3": {
+                "type": "object",
+                "required": [
+                  "n",
+                  "multi_frac"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "multi_frac": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              ">=4": {
+                "type": "object",
+                "required": [
+                  "n",
+                  "multi_frac"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "multi_frac": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sensitivity_gap_3s": {
+      "type": "object",
+      "required": [
+        "events",
+        "bins"
+      ],
+      "properties": {
+        "events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bins": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "lo",
+              "hi",
+              "n",
+              "tiers",
+              "multi_frac",
+              "mean_windows",
+              "concurrent_windows",
+              "adjacent_concurrent_windows",
+              "adjacent_share",
+              "confirmed_nonadjacent",
+              "by_duration"
+            ],
+            "properties": {
+              "lo": {
+                "type": "number"
+              },
+              "hi": {
+                "type": "number"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tiers": {
+                "type": "object",
+                "required": [
+                  "confirmed",
+                  "probable",
+                  "single_beam"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "probable": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "single_beam": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              },
+              "multi_frac": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "mean_windows": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "concurrent_windows": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "adjacent_concurrent_windows": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "adjacent_share": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "confirmed_nonadjacent": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "by_duration": {
+                "type": "object",
+                "required": [
+                  "1",
+                  "2-3",
+                  ">=4"
+                ],
+                "properties": {
+                  "1": {
+                    "type": "object",
+                    "required": [
+                      "n",
+                      "multi_frac"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "multi_frac": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "2-3": {
+                    "type": "object",
+                    "required": [
+                      "n",
+                      "multi_frac"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "multi_frac": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  ">=4": {
+                    "type": "object",
+                    "required": [
+                      "n",
+                      "multi_frac"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "multi_frac": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "negative_control": {
+      "type": "object",
+      "required": [
+        "n_cold_insect",
+        "n_bird",
+        "bins",
+        "artifact_scores_higher"
+      ],
+      "properties": {
+        "n_cold_insect": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_bird": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bins": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "lo",
+              "hi",
+              "n_cold_insect",
+              "n_bird",
+              "cold_insect_single_frac",
+              "bird_single_frac",
+              "matched_cold_insect_single_frac",
+              "matched_bird_single_frac",
+              "eligible",
+              "cold_insect_adjacent_share"
+            ],
+            "properties": {
+              "lo": {
+                "type": "number"
+              },
+              "hi": {
+                "type": "number"
+              },
+              "n_cold_insect": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "n_bird": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cold_insect_single_frac": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "bird_single_frac": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "matched_cold_insect_single_frac": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "matched_bird_single_frac": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "cold_insect_adjacent_share": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "artifact_scores_higher": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outcomes": {
+      "type": "object",
+      "required": [
+        "o1",
+        "o2_proxy"
+      ],
+      "properties": {
+        "o1": {
+          "oneOf": [
+            {
+              "const": "unavailable"
+            },
+            {
+              "type": "object",
+              "required": [
+                "n",
+                "n_concurrent",
+                "n_single",
+                "status",
+                "strata_used",
+                "cmh_chi2",
+                "cmh_p",
+                "or",
+                "or_ci95",
+                "breslow_day_p",
+                "level_sensitivity"
+              ],
+              "properties": {
+                "n": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "n_concurrent": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "n_single": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "status": {
+                  "enum": [
+                    "ok",
+                    "stratum_too_sparse",
+                    "no_variation",
+                    "no_labelled_events"
+                  ]
+                },
+                "strata_used": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "cmh_chi2": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "cmh_p": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "or": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "exclusiveMinimum": 0
+                },
+                "or_ci95": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "breslow_day_p": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "level_sensitivity": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "strata_used",
+                        "cmh_p",
+                        "or"
+                      ],
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "stratum_too_sparse",
+                            "no_variation",
+                            "no_labelled_events"
+                          ]
+                        },
+                        "strata_used": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cmh_p": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "or": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "o2_proxy": {
+          "type": "object",
+          "required": [
+            "n",
+            "or",
+            "or_ci95"
+          ],
+          "properties": {
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "or": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "or_ci95": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "enum": [
+        "drop",
+        "reframe_diffuse",
+        "ship_tier",
+        "insufficient_labels",
+        "insufficient_evidence",
+        "inconclusive"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "private_detail": {
+      "type": "object",
+      "required": [
+        "top_species"
+      ],
+      "properties": {
+        "top_species": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "common",
+              "events"
+            ],
+            "properties": {
+              "common": {
+                "type": "string"
+              },
+              "events": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "shuffle_null": {
+      "description": "Optional (absent with --null-trials 0). Per-beam report times shuffled within the same species and UTC hour, events re-clustered, pass = event with a window of >= 2 beams; null_* are over `trials` seeded draws; excess = real_pass_rate - null_pass_rate. Report-only: no tier or decision reads it.",
+      "type": "object",
+      "required": [
+        "statistic",
+        "shuffle",
+        "trials",
+        "seed",
+        "groups",
+        "reports_shuffled",
+        "reports_unshuffled",
+        "bins",
+        "all",
+        "quantile_bands"
+      ],
+      "properties": {
+        "statistic": {
+          "const": "event_with_concurrent_window"
+        },
+        "shuffle": {
+          "const": "per_beam_report_times_within_species_hour"
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reports_shuffled": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Reports given a new time per draw."
+        },
+        "reports_unshuffled": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Reports left at their real time per draw (beam with more reports than the group has distinct times)."
+        },
+        "bins": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "lo",
+              "hi",
+              "n",
+              "real_pass_rate",
+              "null_pass_rate",
+              "null_min",
+              "null_max",
+              "null_n_mean",
+              "excess",
+              "runs"
+            ],
+            "properties": {
+              "lo": {
+                "type": "number"
+              },
+              "hi": {
+                "type": "number"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "real_pass_rate": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "null_pass_rate": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "null_min": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "null_max": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "null_n_mean": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "excess": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "runs": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "all": {
+          "type": "object",
+          "required": [
+            "n",
+            "real_pass_rate",
+            "null_pass_rate",
+            "null_min",
+            "null_max",
+            "null_n_mean",
+            "excess",
+            "runs"
+          ],
+          "properties": {
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "real_pass_rate": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "null_pass_rate": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "null_min": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "null_max": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "null_n_mean": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "excess": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "quantile_bands": {
+          "description": "Measured cut points of the real in-region species event confidences (band i = [cut i-1, cut i)). Report-only, never gating.",
+          "type": "object",
+          "required": [
+            "gating",
+            "quantiles",
+            "cuts",
+            "arbitrary_cuts",
+            "bands"
+          ],
+          "properties": {
+            "gating": {
+              "const": false
+            },
+            "quantiles": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "cuts": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ]
+            },
+            "arbitrary_cuts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "cut",
+                  "fraction_below"
+                ],
+                "properties": {
+                  "cut": {
+                    "type": "number"
+                  },
+                  "fraction_below": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "bands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "lo",
+                  "hi",
+                  "n",
+                  "real_pass_rate",
+                  "null_pass_rate",
+                  "null_min",
+                  "null_max",
+                  "null_n_mean",
+                  "excess",
+                  "runs"
+                ],
+                "properties": {
+                  "lo": {
+                    "type": "number"
+                  },
+                  "hi": {
+                    "type": "number"
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "real_pass_rate": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "null_pass_rate": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "null_min": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "null_max": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "null_n_mean": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "excess": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "runs": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

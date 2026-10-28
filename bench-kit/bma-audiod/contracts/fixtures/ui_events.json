@@ -1,0 +1,126 @@
+{
+ "since_s": 1792947600.0,
+ "until_s": 1792951800.0,
+ "in_region": "any",
+ "non_species": "false",
+ "group": "insect",
+ "artifact": "any",
+ "total": 6,
+ "limit": 3,
+ "offset": 0,
+ "frame": "array frame (uncalibrated)",
+ "slot_mapping_reliable_from_s": 1792948601.0,
+ "window_start_s": 1792779000,
+ "truncated_by_window": false,
+ "events": [
+  {
+   "id": "1792949635000-amblycorypha-longinicta",
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "t_start_s": 1792949635,
+   "t_end_s": 1792949635,
+   "best_beam": 6,
+   "best_beam_azimuth_deg": 225,
+   "best_confidence": 0.7,
+   "beams": [
+    6
+   ],
+   "reports": 1,
+   "max_confidence": 0.7,
+   "max_level_dbfs": -60.0,
+   "in_region": null,
+   "group": "insect",
+   "non_species": false,
+   "slot_mapping_unreliable": false,
+   "provenance": "model_opinion",
+   "artifact_flags": {
+    "v": 1,
+    "flags": [
+     "cold_insect"
+    ],
+    "level": "likely",
+    "evidence": {
+     "temp_c": 2.3,
+     "temp_age_s": 0,
+     "floor_c": 5.0,
+     "burst_n": 8,
+     "burst_spread_db": 1.5,
+     "window_s": 30.0
+    }
+   }
+  },
+  {
+   "id": "1792949628000-amblycorypha-longinicta",
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "t_start_s": 1792949628,
+   "t_end_s": 1792949628,
+   "best_beam": 5,
+   "best_beam_azimuth_deg": 270,
+   "best_confidence": 0.7,
+   "beams": [
+    5
+   ],
+   "reports": 1,
+   "max_confidence": 0.7,
+   "max_level_dbfs": -60.0,
+   "in_region": null,
+   "group": "insect",
+   "non_species": false,
+   "slot_mapping_unreliable": false,
+   "provenance": "model_opinion",
+   "artifact_flags": {
+    "v": 1,
+    "flags": [
+     "cold_insect"
+    ],
+    "level": "likely",
+    "evidence": {
+     "temp_c": 2.3,
+     "temp_age_s": 0,
+     "floor_c": 5.0,
+     "burst_n": 15,
+     "burst_spread_db": 1.5,
+     "window_s": 30.0
+    }
+   }
+  },
+  {
+   "id": "1792949621000-amblycorypha-longinicta",
+   "species": "Common Virtuoso Katydid",
+   "scientific": "Amblycorypha longinicta",
+   "t_start_s": 1792949621,
+   "t_end_s": 1792949621,
+   "best_beam": 4,
+   "best_beam_azimuth_deg": 315,
+   "best_confidence": 0.7,
+   "beams": [
+    4
+   ],
+   "reports": 1,
+   "max_confidence": 0.7,
+   "max_level_dbfs": -60.0,
+   "in_region": null,
+   "group": "insect",
+   "non_species": false,
+   "slot_mapping_unreliable": false,
+   "provenance": "model_opinion",
+   "artifact_flags": {
+    "v": 1,
+    "flags": [
+     "burst_coincident",
+     "cold_insect"
+    ],
+    "level": "likely",
+    "evidence": {
+     "temp_c": 2.3,
+     "temp_age_s": 0,
+     "floor_c": 5.0,
+     "burst_n": 22,
+     "burst_spread_db": 1.5,
+     "window_s": 30.0
+    }
+   }
+  }
+ ]
+}

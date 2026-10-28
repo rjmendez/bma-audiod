@@ -1,0 +1,23 @@
+{
+ "labelled": 24,
+ "verdicts": {
+  "correct": 15,
+  "wrong": 6,
+  "unsure": 2,
+  "artifact": 1
+ },
+ "target": 20,
+ "species_at_target": 1,
+ "queue_depth": 36,
+ "no_clip": 112,
+ "species": [
+  {
+   "species_key": "poecile carolinensis",
+   "labels": 20
+  },
+  {
+   "species_key": "cyanocitta cristata",
+   "labels": 4
+  }
+ ]
+}

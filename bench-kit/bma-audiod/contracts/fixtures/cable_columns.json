@@ -1,0 +1,77 @@
+{
+ "note": "cable-stream 2.0.0: the u32 card index split 12/12/8 bits onto channels 9, 10, 11; each field u is the column count (u - 2048) << 8. Index 0 is a legal row (its columns are -524288 each); the underrun marker is all three columns exactly 0 (u = 2048 on channel 11 is not a valid index byte)",
+ "cases": [
+  {
+   "index": 51524694,
+   "columns": [
+    -240128,
+    -449792,
+    -523520
+   ],
+   "from_columns": 51524694
+  },
+  {
+   "index": 4294934529,
+   "columns": [
+    -524032,
+    522240,
+    -459008
+   ],
+   "from_columns": 4294934529
+  },
+  {
+   "index": 98304,
+   "columns": [
+    -524288,
+    -518144,
+    -524288
+   ],
+   "from_columns": 98304
+  },
+  {
+   "index": 2147450879,
+   "columns": [
+    524032,
+    521984,
+    -491776
+   ],
+   "from_columns": 2147450879
+  },
+  {
+   "index": 1,
+   "columns": [
+    -524032,
+    -524288,
+    -524288
+   ],
+   "from_columns": 1
+  },
+  {
+   "index": 4294967295,
+   "columns": [
+    524032,
+    524032,
+    -459008
+   ],
+   "from_columns": 4294967295
+  },
+  {
+   "index": 0,
+   "columns": [
+    -524288,
+    -524288,
+    -524288
+   ],
+   "from_columns": 0
+  },
+  {
+   "index": 4278194175,
+   "columns": [
+    524032,
+    -524288,
+    -459008
+   ],
+   "from_columns": 4278194175
+  }
+ ]
+}

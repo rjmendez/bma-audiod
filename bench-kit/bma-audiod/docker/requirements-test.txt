@@ -1,0 +1,3 @@
+# Extra packages for the test image on top of the CPU analyzer image (contracts/check_contracts.py and its tests).
+# Pinned to the contracts venv's version.
+jsonschema==4.26.0

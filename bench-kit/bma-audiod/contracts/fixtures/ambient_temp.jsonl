@@ -1,0 +1,8 @@
+{"k":"ambient_temp","v":1,"t_hour_utc":1792972800,"temp_c":3.4,"source":"open-meteo","model_grid_km":null,"wind_ms":1.2,"precip_mm":0.0,"cloud_pct":100.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792976400,"temp_c":2.9,"source":"open-meteo","model_grid_km":null,"wind_ms":0.8,"precip_mm":0.0,"cloud_pct":90.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792980000,"temp_c":2.1,"source":"open-meteo","model_grid_km":null,"wind_ms":0.0,"precip_mm":0.0,"cloud_pct":75.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792983600,"temp_c":1.0,"source":"open-meteo","model_grid_km":null,"wind_ms":2.5,"precip_mm":0.2,"cloud_pct":40.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792987200,"temp_c":-0.6,"source":"open-meteo","model_grid_km":null,"wind_ms":3.1,"precip_mm":1.4,"cloud_pct":0.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792990800,"temp_c":-0.2,"source":"open-meteo","model_grid_km":null,"precip_mm":0.0,"cloud_pct":10.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792994400,"temp_c":0.0,"source":"open-meteo","model_grid_km":null,"wind_ms":4.0,"precip_mm":0.0}
+{"k":"ambient_temp","v":1,"t_hour_utc":1792998000,"temp_c":4.5,"source":"open-meteo","model_grid_km":null,"wind_ms":5.6,"precip_mm":0.0,"cloud_pct":5.0}

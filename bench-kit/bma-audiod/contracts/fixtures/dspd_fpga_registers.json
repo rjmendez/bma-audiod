@@ -1,0 +1,1 @@
+{"count":2,"registers":[{"name":"fpga_id","address":"0x20","value":256,"hex":"0100"},{"name":"fpga_version","address":"0x22","value":279,"hex":"0117"}],"request_id":"r00000000-00000"}

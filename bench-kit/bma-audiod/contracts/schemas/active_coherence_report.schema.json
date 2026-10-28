@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:active-coherence-report",
+  "title": "active_coherence_report (output of tools/active_coherence.py)",
+  "description": "One JSON document: event-keyed active beam coherence and go/no-go per method. Metadata only: no audio, no coordinates, no path. Human-voice labels never appear. Readers MUST ignore unknown fields of a later minor version.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "k",
+    "v",
+    "generated_s",
+    "params",
+    "input",
+    "measurability",
+    "rows",
+    "species",
+    "methods"
+  ],
+  "$defs": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "num": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "verdict": {
+      "enum": [
+        "go",
+        "no_go",
+        "insufficient"
+      ]
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "go",
+        "no_go"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "go",
+            "no_go",
+            "not_measurable"
+          ]
+        },
+        "go": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "no_go": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "k": {
+      "const": "active_coherence_report"
+    },
+    "v": {
+      "const": 1
+    },
+    "generated_s": {
+      "type": "number"
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hop_s",
+        "min_cell_windows",
+        "isolation_min",
+        "min_events",
+        "min_no_go_species",
+        "separate_msc",
+        "coherent_msc",
+        "coherent_phase_spread_deg",
+        "bearing_dl_db",
+        "duet_lag_samples",
+        "event_gap_s"
+      ],
+      "properties": {
+        "hop_s": {
+          "type": "number"
+        },
+        "min_cell_windows": {
+          "$ref": "#/$defs/count"
+        },
+        "isolation_min": {
+          "type": "number"
+        },
+        "min_events": {
+          "$ref": "#/$defs/count"
+        },
+        "min_no_go_species": {
+          "$ref": "#/$defs/count"
+        },
+        "separate_msc": {
+          "type": "number"
+        },
+        "coherent_msc": {
+          "type": "number"
+        },
+        "coherent_phase_spread_deg": {
+          "type": "number"
+        },
+        "bearing_dl_db": {
+          "type": "number"
+        },
+        "duet_lag_samples": {
+          "type": "number"
+        },
+        "event_gap_s": {
+          "type": "number"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coherence_records",
+        "coherence_partial_skipped",
+        "birds_rows",
+        "excluded_human_voice",
+        "events",
+        "events_multi_beam",
+        "events_overlapping"
+      ],
+      "properties": {
+        "coherence_records": {
+          "$ref": "#/$defs/count"
+        },
+        "coherence_partial_skipped": {
+          "$ref": "#/$defs/count"
+        },
+        "birds_rows": {
+          "$ref": "#/$defs/count"
+        },
+        "excluded_human_voice": {
+          "$ref": "#/$defs/count"
+        },
+        "events": {
+          "$ref": "#/$defs/count"
+        },
+        "events_multi_beam": {
+          "$ref": "#/$defs/count"
+        },
+        "events_overlapping": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "measurability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "interval_s_p50",
+        "event_s_p50",
+        "event_windows_p50",
+        "event_intervals",
+        "isolating_event_intervals",
+        "isolating_events",
+        "species_ok",
+        "species_insufficient"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "measurable",
+            "not_measurable"
+          ]
+        },
+        "interval_s_p50": {
+          "$ref": "#/$defs/num"
+        },
+        "event_s_p50": {
+          "$ref": "#/$defs/num"
+        },
+        "event_windows_p50": {
+          "$ref": "#/$defs/num"
+        },
+        "event_intervals": {
+          "$ref": "#/$defs/count"
+        },
+        "isolating_event_intervals": {
+          "$ref": "#/$defs/count"
+        },
+        "isolating_events": {
+          "$ref": "#/$defs/count"
+        },
+        "species_ok": {
+          "$ref": "#/$defs/count"
+        },
+        "species_insufficient": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "species",
+          "band",
+          "edges_hz",
+          "status",
+          "events",
+          "intervals",
+          "pair_samples",
+          "windows",
+          "msc_active",
+          "msc_quiet",
+          "msc_diff",
+          "ph_deg",
+          "ph_spread_deg",
+          "lag_abs",
+          "dl_abs_db",
+          "separates",
+          "coherent",
+          "bearing_dl",
+          "duet_lag"
+        ],
+        "properties": {
+          "species": {
+            "type": "string",
+            "minLength": 1
+          },
+          "band": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "edges_hz": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "insufficient",
+              "identical_expected"
+            ]
+          },
+          "events": {
+            "$ref": "#/$defs/count"
+          },
+          "intervals": {
+            "$ref": "#/$defs/count"
+          },
+          "pair_samples": {
+            "$ref": "#/$defs/count"
+          },
+          "windows": {
+            "$ref": "#/$defs/count"
+          },
+          "msc_active": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "msc_quiet": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "msc_diff": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": -1,
+            "maximum": 1
+          },
+          "ph_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "ph_spread_deg": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lag_abs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "dl_abs_db": {
+            "type": "number",
+            "minimum": 0
+          },
+          "separates": {
+            "type": "boolean"
+          },
+          "coherent": {
+            "type": "boolean"
+          },
+          "bearing_dl": {
+            "type": "boolean"
+          },
+          "duet_lag": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "species": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "species",
+          "events",
+          "bands_ok",
+          "beam_gated_classification",
+          "level_ratio_bearing",
+          "duet"
+        ],
+        "properties": {
+          "species": {
+            "type": "string",
+            "minLength": 1
+          },
+          "events": {
+            "$ref": "#/$defs/count"
+          },
+          "bands_ok": {
+            "$ref": "#/$defs/count"
+          },
+          "beam_gated_classification": {
+            "$ref": "#/$defs/verdict"
+          },
+          "level_ratio_bearing": {
+            "$ref": "#/$defs/verdict"
+          },
+          "duet": {
+            "$ref": "#/$defs/verdict"
+          }
+        }
+      }
+    },
+    "methods": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "beam_gated_classification",
+        "level_ratio_bearing",
+        "duet"
+      ],
+      "properties": {
+        "beam_gated_classification": {
+          "$ref": "#/$defs/method"
+        },
+        "level_ratio_bearing": {
+          "$ref": "#/$defs/method"
+        },
+        "duet": {
+          "$ref": "#/$defs/method"
+        }
+      }
+    }
+  }
+}

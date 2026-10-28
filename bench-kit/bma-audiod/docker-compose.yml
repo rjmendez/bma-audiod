@@ -1,0 +1,115 @@
+# BMA pipeline, containerised parts. Run from this directory; see docker/README.md.
+#   docker compose --profile cpu up -d          analyzer + classifier (CPU) + dashboard
+#   docker compose --profile gpu up -d          analyzer (NVIDIA GPU) + classifier + dashboard
+#   docker compose --profile setup run --rm models    one-time model download into BMA_MODEL_DIR
+#   docker compose --profile test run --rm tests      the test suites (add a suite name: analysis, contracts, ...)
+# Variables (all optional, see .env.example): BMA_DATA_DIR (default ./data), BMA_MODEL_DIR (default ./models),
+# BMA_BOARD, BMA_DSPD_TOKEN_FILE. Ports are fixed and published on loopback only; change them in an override file.
+# The Dante multicast bridge and the Windows cable sink stay on the host and send UDP to 127.0.0.1:48300 / :48200.
+
+x-hardened: &hardened
+  read_only: true
+  tmpfs: ["/tmp"]
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+x-analyzer-volumes: &analyzer-volumes
+  - ${BMA_DATA_DIR:-./data}:/data
+  - ${BMA_MODEL_DIR:-./models}:/models
+
+services:
+  analyzer-cpu:
+    <<: *hardened
+    profiles: ["cpu"]
+    image: bma-analyzer:cpu
+    build: {context: ., dockerfile: docker/analyzer.Dockerfile, args: {VARIANT: cpu}}
+    command: ["analyzer"]
+    ports: ["127.0.0.1:48300:48300/udp"]
+    volumes: *analyzer-volumes
+    healthcheck: &analyzer-health
+      test: ["CMD", "python", "/usr/local/lib/bma/healthcheck.py", "fresh", "analysis/status.json", "60"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s          # plugin / model load
+
+  analyzer-gpu:
+    <<: *hardened
+    profiles: ["gpu"]
+    image: bma-analyzer:gpu
+    build: {context: ., dockerfile: docker/analyzer.Dockerfile, args: {VARIANT: gpu}}
+    command: ["analyzer"]
+    ports: ["127.0.0.1:48300:48300/udp"]
+    volumes: *analyzer-volumes
+    healthcheck: *analyzer-health
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+  # The streaming classifier (BirdNET runs on the CPU), a second process from the same image: the live two-process layout.
+  classifier:
+    <<: *hardened
+    profiles: ["cpu", "gpu"]
+    image: bma-analyzer:cpu
+    build: {context: ., dockerfile: docker/analyzer.Dockerfile, args: {VARIANT: cpu}}
+    command: ["classifier"]
+    ports: ["127.0.0.1:48200:48200/udp"]
+    volumes: *analyzer-volumes
+    healthcheck:
+      test: ["CMD", "python", "/usr/local/lib/bma/healthcheck.py", "udp", "48200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+  # The dashboard has a login (ui/AUTH.md): it needs <data>/dashboard_token.txt (the supervisor-made file works) and refuses to start
+  # without it. Optional HTTPS: <data>/tls/dashboard_cert.pem + dashboard_key.pem (pc/setup_tls.ps1 makes them from a Tailscale certificate).
+  # Published on loopback only, Host allow-list on (localhost, 127.0.0.1 and IP literals on its port). <data> is mounted read-only.
+  dashboard:
+    <<: *hardened
+    profiles: ["cpu", "gpu", "dashboard"]
+    image: bma-dashboard
+    build: {context: ., dockerfile: docker/dashboard.Dockerfile}
+    command: ["dashboard"]
+    environment:
+      BMA_BOARD: ${BMA_BOARD:-}
+    ports: ["127.0.0.1:48500:48500"]
+    volumes:
+      - ${BMA_DATA_DIR:-./data}:/data:ro
+      - ${BMA_DSPD_TOKEN_FILE:-/dev/null}:/run/secrets/dspd_token:ro
+    healthcheck:
+      test: ["CMD", "python", "/usr/local/lib/bma/healthcheck.py", "http", "48500"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # One-time model download (network needed); writes only to BMA_MODEL_DIR.
+  models:
+    profiles: ["setup"]
+    image: bma-analyzer:cpu
+    build: {context: ., dockerfile: docker/analyzer.Dockerfile, args: {VARIANT: cpu}}
+    command: ["models"]
+    volumes: ["${BMA_MODEL_DIR:-./models}:/models"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  # Test image on top of the CPU analyzer image (build analyzer-cpu first). Default command runs every suite.
+  tests:
+    profiles: ["test"]
+    image: bma-test
+    build: {context: ., dockerfile: docker/test.Dockerfile}
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  # dspd unit/API tests on the build host (cargo test). The board binary itself is built with docker build --output.
+  dspd-test:
+    profiles: ["test"]
+    image: bma-dspd-test
+    build: {context: ., dockerfile: docker/dspd-build.Dockerfile, target: test}

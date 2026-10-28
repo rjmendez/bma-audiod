@@ -1,0 +1,25 @@
+{
+ "spectrum_version": "1.0.0",
+ "state": "auth_required",
+ "tier": "standard",
+ "beam": 0,
+ "now_s": 1792951401.7,
+ "n_bins": 0,
+ "edges_hz": [],
+ "db_floor": -100.0,
+ "db_step": 0.5,
+ "rows_per_s": 10,
+ "hop_ms": 100,
+ "rev": 0,
+ "newest_idx": 0,
+ "next_since": 0,
+ "rows_missed": 0,
+ "newest_age_s": null,
+ "gated_now": false,
+ "limits": {
+  "ring_s": 60.0,
+  "max_rows": 600,
+  "requests_per_s": 5.0
+ },
+ "rows": []
+}

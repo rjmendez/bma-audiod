@@ -1,0 +1,28 @@
+bma-audiod: third-party notices
+
+This repository is MIT-licensed (LICENSE). It redistributes no model weights, no vendor firmware and no vendor
+documents. Everything below is downloaded or installed by the operator, or is a small embedded table.
+
+Embedded in this repository
+  Colour maps in ui/static/spectrum.js, ui-next/static/engine/colormaps.js, ui-next/bench/static/lib/colormaps.js
+    viridis, magma: CC0 1.0 (matplotlib / viridis authors).
+    turbo: Copyright 2019 Google LLC, Apache License 2.0 (https://github.com/google/turbo; the table is reproduced
+    unmodified in hex form). Licence text: https://www.apache.org/licenses/LICENSE-2.0
+
+Downloaded by the operator, never redistributed here (full table with sources: bench-kit/bma-audiod/docs/licences.md)
+  BirdNET model weights: CC BY-NC-SA 4.0. NON-COMMERCIAL use only; ShareAlike applies to adapted weights.
+  BirdNET-Analyzer code: MIT. birdnetlib: Apache-2.0.
+  PANNs Cnn14 checkpoint: CC BY 4.0 (Kong et al.). panns_inference: MIT.
+  CLAP laion/clap-htsat-unfused: Apache-2.0.
+  Perch 2.0 (Google) weights and the Hugging Face ONNX repack: weights licence not verified by the maintainers;
+    read the model terms before enabling Perch. google-research/perch code: Apache-2.0.
+  Open-Meteo data: CC BY 4.0, free API for non-commercial use.
+  Python packages (BSD/MIT/ISC/Apache-2.0): scikit-maad, librosa, onnxruntime, torch.
+
+Technique-only references (no code copied)
+  ShinySDR, OpenWebRX, BrowSDR, gqrx (GPL/AGPL) were read for waterfall and streaming technique only
+  (docs/ui-next/STREAMING.md). No code from them is included.
+
+Trademarks
+  BMA360, Dante, Audinate, BirdNET, Perch, VB-Cable and other names belong to their owners and are used only to say
+  which hardware or software this project works with. This project is unaffiliated with and not endorsed by them.

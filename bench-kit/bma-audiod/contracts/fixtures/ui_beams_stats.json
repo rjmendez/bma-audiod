@@ -1,0 +1,135 @@
+{
+ "band": 5,
+ "band_lo_hz": 2000,
+ "band_hi_hz": 4000,
+ "steerable": true,
+ "since_s": 1792947600.0,
+ "until_s": 1792951200.0,
+ "granularity": "whole hours overlapping the range",
+ "effective_since_s": 1792947600,
+ "effective_until_s": 1792951200,
+ "frame": "array frame (uncalibrated)",
+ "windows": 3,
+ "hours": 1,
+ "contrast_min_db": 3.0,
+ "leader_band_hz": [
+  2000,
+  8000
+ ],
+ "windows_with_contrast": 2,
+ "zero_frac_mean": 0.0,
+ "ring_power_mean_db": -20.34,
+ "beams": [
+  {
+   "beam": 1,
+   "azimuth_deg": 90,
+   "power_mean_db": -14.69,
+   "max_db": -10.0,
+   "rel_ring_db": 5.65,
+   "leader_share": 0.5,
+   "mean_rel_ring_db_2_8khz": -1.26
+  },
+  {
+   "beam": 2,
+   "azimuth_deg": 45,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  },
+  {
+   "beam": 3,
+   "azimuth_deg": 0,
+   "power_mean_db": -14.69,
+   "max_db": -10.0,
+   "rel_ring_db": 5.65,
+   "leader_share": 0.5,
+   "mean_rel_ring_db_2_8khz": -1.26
+  },
+  {
+   "beam": 4,
+   "azimuth_deg": 315,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  },
+  {
+   "beam": 5,
+   "azimuth_deg": 270,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  },
+  {
+   "beam": 6,
+   "azimuth_deg": 225,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  },
+  {
+   "beam": 7,
+   "azimuth_deg": 180,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  },
+  {
+   "beam": 8,
+   "azimuth_deg": 135,
+   "power_mean_db": -30.0,
+   "max_db": -30.0,
+   "rel_ring_db": -9.66,
+   "leader_share": 0.0,
+   "mean_rel_ring_db_2_8khz": -11.26
+  }
+ ],
+ "hourly": [
+  {
+   "hour_s": 1792947600,
+   "windows": 3,
+   "zero_frac_mean": 0.0,
+   "power_mean_db": [
+    -14.69,
+    -30.0,
+    -14.69,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    5.65,
+    -9.66,
+    5.65,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66
+   ],
+   "contrast_windows": 2,
+   "leader_share": [
+    0.5,
+    0.0,
+    0.5,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  }
+ ],
+ "note": "Relative-to-ring is each beam's long-run power-mean minus the mean power of all 8 beams."
+}

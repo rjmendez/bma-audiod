@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:event-model",
+  "title": "event_model_report (output of tools/bma_labels.py events)",
+  "description": "One JSON line: event conservation counts and label resolution. Metadata only. Readers MUST ignore unknown fields of a later minor version.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["k", "v", "id_version", "gap_s", "conservation", "labels"],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0}
+  },
+  "properties": {
+    "k": {"const": "event_model_report"},
+    "v": {"const": 1},
+    "id_version": {"const": "ev1"},
+    "gap_s": {"type": "number", "exclusiveMinimum": 0},
+    "conservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "events", "reports", "rejected", "duplicate_windows"],
+      "properties": {
+        "input": {"$ref": "#/$defs/count"},
+        "events": {"$ref": "#/$defs/count"},
+        "reports": {"$ref": "#/$defs/count"},
+        "rejected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["other_kind", "out_of_region", "invalid", "hidden_human", "duplicate_window"],
+          "properties": {
+            "other_kind": {"$ref": "#/$defs/count"},
+            "out_of_region": {"$ref": "#/$defs/count"},
+            "invalid": {"$ref": "#/$defs/count"},
+            "hidden_human": {"$ref": "#/$defs/count"},
+            "duplicate_window": {"$ref": "#/$defs/count"}
+          }
+        },
+        "duplicate_windows": {"$ref": "#/$defs/count"}
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact", "superseded", "orphaned", "ambiguous"],
+      "properties": {
+        "exact": {"$ref": "#/$defs/count"},
+        "superseded": {"$ref": "#/$defs/count"},
+        "orphaned": {"$ref": "#/$defs/count"},
+        "ambiguous": {"$ref": "#/$defs/count"}
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:bridge-status",
+  "title": "bridge_status.json",
+  "description": "Written atomically (tmp + rename) every --stats-s seconds by pc/dante_bridge.py. `pps`, `loss_pct`, `blocks_all_zero_frac` describe the LAST stats interval; `pkts`, `gaps`, `backwards`, `bad`, `blocks`, `uptime_s` are cumulative since the process started. Producer: pc/dante_bridge.py. Consumers: pc/bma_cable_sink.py (data track kind 3), analysis/summarize.py, operators.",
+  "x-contract-version": "1.0.0",
+  "type": "object",
+  "required": ["t", "group", "pkts", "pps", "loss_pct", "gaps", "backwards", "bad", "blocks", "blocks_all_zero_frac", "state", "nch", "channels", "targets", "uptime_s"],
+  "properties": {
+    "t": {"type": "number", "description": "PC wall clock when written, Unix seconds (float)."},
+    "group": {"type": "string", "pattern": "^[^:\\s]+:[0-9]{1,5}$", "description": "multicast group:port the media socket is joined to (or the --bind address in test mode)."},
+    "pkts": {"type": "integer", "minimum": 0, "description": "Cumulative media packets received."},
+    "pps": {"type": "number", "minimum": 0, "description": "Packets per second over the last interval (3000 per flow when healthy)."},
+    "loss_pct": {"type": "number", "minimum": 0, "maximum": 100, "description": "Percent of the last interval's frames lost, from the card's frame counter."},
+    "gaps": {"type": "integer", "minimum": 0, "description": "Cumulative count of detected holes."},
+    "backwards": {"type": "integer", "minimum": 0, "description": "Cumulative count of packets whose counter went backwards."},
+    "bad": {"type": "integer", "minimum": 0, "description": "Cumulative count of malformed media packets."},
+    "blocks": {"type": "integer", "minimum": 0, "description": "Cumulative 256-sample blocks produced."},
+    "blocks_all_zero_frac": {"type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of the last interval's blocks that were all zero."},
+    "state": {"enum": ["ok", "NOPKT", "UNFED"], "description": "NOPKT: no packet in the interval. UNFED: more than 99.9% of blocks all-zero (the card's Tx carries no audio). ok otherwise."},
+    "nch": {"type": "integer", "minimum": 0, "maximum": 8, "description": "Channels seen in the flow (8 for the beam flow)."},
+    "channels": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 8}, "description": "1-based channels forwarded as slot 0 to the --to targets (the loudest one when --channels auto)."},
+    "targets": {"type": "array", "items": {"type": "string", "pattern": "^[^:\\s]+:[0-9]{1,5}$"}, "description": "Resolved --to targets only. The --all-to targets are NOT listed (see CHANGELOG known disagreements)."},
+    "uptime_s": {"type": "number", "minimum": 0}
+  }
+}

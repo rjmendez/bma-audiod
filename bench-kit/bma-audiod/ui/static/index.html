@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>BMA beams and detections</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/review.css">
+</head>
+<body>
+<header>
+  <h1><span>BMA beams &amp; detections</span><span id="help-slot"></span></h1>
+  <nav id="nav" aria-label="Sections">
+    <button data-tab="overview">Overview</button>
+    <button data-tab="detections">Detections</button>
+    <button data-tab="beams">Beams</button>
+    <button data-tab="system">System</button>
+    <button data-tab="review">Review</button>
+  </nav>
+  <div id="refresh" class="muted"></div>
+</header>
+<section id="strip" class="strip" aria-label="Status"></section>
+<main>
+  <section id="tab-overview" class="tab" hidden></section>
+  <section id="tab-detections" class="tab" hidden></section>
+  <section id="tab-beams" class="tab" hidden></section>
+  <section id="tab-system" class="tab" hidden></section>
+  <section id="tab-review" class="tab" hidden></section>
+</main>
+<noscript>This dashboard needs JavaScript.</noscript>
+<script src="/static/tip.js"></script>
+<script src="/static/review.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/session.js" defer></script>
+</body>
+</html>

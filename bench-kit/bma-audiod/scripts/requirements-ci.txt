@@ -1,0 +1,10 @@
+# Python packages for the linux CI jobs (setup-python cache: pip keys on this file).
+numpy
+scipy
+jsonschema
+soundfile
+librosa
+pillow
+scikit-maad
+pyyaml
+ruff==0.17.3

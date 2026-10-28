@@ -1,0 +1,18 @@
+{
+ "t": 1792884000.0,
+ "device": "CABLE In 16ch (VB-Audio Virtual Cable)",
+ "audio_output": true,
+ "device_error": null,
+ "datagrams": 144000,
+ "bad": 0,
+ "rx_errors": 0,
+ "buffered_ms": 151,
+ "underruns": 0,
+ "slips": 2,
+ "slipped_frames": 14400,
+ "missing_slot_blocks": 0,
+ "holes": 41,
+ "playing": true,
+ "data_frames": 141,
+ "data_dropped": 0
+}

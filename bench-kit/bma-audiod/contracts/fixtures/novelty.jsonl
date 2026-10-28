@@ -1,0 +1,13 @@
+{"k":"novel_event","t":1791968154.514346,"scene":1,"score":3.5}
+{"k":"novel_event","t":1791970195.1853054,"scene":3,"score":4.0}
+{"k":"novelty","t":1792889680.1845453,"scene":1,"dist":0.2088,"score":0.68,"novel":false,"seen":63143}
+{"k":"novelty","t":1792889682.160686,"scene":1,"dist":0.2232,"score":0.74,"novel":false,"seen":63144}
+{"k":"novelty","t":1792889684.1636715,"scene":1,"dist":0.3077,"score":1.01,"novel":false,"seen":63145}
+{"k":"novelty","t":1792889686.1684525,"scene":1,"dist":0.372,"score":1.22,"novel":false,"seen":63146}
+{"k":"novelty","t":1792889688.174737,"scene":1,"dist":0.3643,"score":1.19,"novel":false,"seen":63147}
+{"k":"novelty","t":1792889708.1859052,"scene":0,"dist":0.343,"score":1.12,"novel":false,"seen":63148}
+{"k":"novelty","t":1792889710.1996033,"scene":7,"dist":0.3524,"score":1.14,"novel":false,"seen":63149}
+{"k":"novelty","t":1792889712.1972272,"scene":7,"dist":0.3666,"score":1.19,"novel":false,"seen":63150}
+{"k":"novelty","t":1792880000.5,"state":"warming_up","seen":12}
+{"k":"novelty","t":1793030000.5,"state":"warming_up","seen":12,"run":1793029538,"mv":"km12-sk1.7.2"}
+{"k":"novelty","t":1793030002.5,"scene":4,"dist":0.2,"score":0.9,"novel":false,"seen":63200,"run":1793029538,"mv":"km12-sk1.7.2"}

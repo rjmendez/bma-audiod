@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:verdict-labels",
+  "title": "verdict-labels: owner verdicts (<data-dir>/labels/labels.jsonl) and the review queue (tools/bma_labels.py queue)",
+  "description": "Two shapes in one schema. `verdict` is one line of the append-only owner-verdict file labels/labels.jsonl (never rotated, never rewritten, provenance const owner_verdict so it can never be mistaken for a model_opinion). `review_queue` is the JSON document `bma_labels queue` prints: a tool output, NOT a file the pipeline writes (it is validated against fixtures only, never as a live file). No free text, no coordinates, no audio reference, no clip path: key names starting with lat, lon, audio, path, note, text, url or clip are rejected. Readers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.1.0",
+  "x-discriminator": {"field": "k", "map": {"verdict": "verdict"}},
+  "x-files": {"verdict_labels.jsonl": ["verdict"], "labels.jsonl": ["verdict"]},
+  "x-def-files": {"review_queue.json": "review_queue"},
+  "oneOf": [{"$ref": "#/$defs/verdict"}, {"$ref": "#/$defs/review_queue"}],
+  "$defs": {
+    "species_key": {"type": "string", "pattern": "^[a-z0-9 .-]{1,60}$"},
+    "stratum": {"enum": ["disagree", "near", "low", "hi", "artifact_probe"]},
+    "no_forbidden_keys": {"propertyNames": {"not": {"pattern": "^(lat|lon|audio|path|note|text|url|clip)"}}},
+    "verdict": {
+      "type": "object",
+      "required": ["k", "v", "label_id", "t_label", "event_id", "t_start_ms", "species_key", "verdict", "wrong_reason", "corrected_key", "basis", "source", "stratum", "p_include", "queue_id", "model", "provenance"],
+      "properties": {
+        "k": {"const": "verdict"},
+        "v": {"const": 1},
+        "label_id": {"type": "string", "pattern": "^[0-9a-f]{16}$", "description": "16 random hex chars; unique per line."},
+        "t_label": {"type": "number", "exclusiveMinimum": 0, "description": "Unix seconds when the owner gave the verdict (writer clock)."},
+        "event_id": {"type": "string", "pattern": "^[0-9]{1,16}-[a-z0-9-]{0,60}$", "description": "The dashboard event id (ui-http 1.3.0). Its numeric prefix equals t_start_ms (checked by the tests, not expressible here)."},
+        "t_start_ms": {"type": "integer", "exclusiveMinimum": 0},
+        "species_key": {"$ref": "#/$defs/species_key"},
+        "verdict": {"enum": ["correct", "wrong", "unsure", "artifact"], "description": "artifact = a non-biological or instrument artifact; unsure is also how a verdict is retracted."},
+        "wrong_reason": {"enum": ["other_species", "non_bird_sound", "mechanical", "insect_or_amphibian", "no_sound_seen", null], "description": "Required (non-null) iff verdict is wrong."},
+        "corrected_key": {"anyOf": [{"$ref": "#/$defs/species_key"}, {"type": "null"}], "description": "Only with wrong_reason other_species."},
+        "basis": {"enum": ["field", "clip_visual", "metadata_only"]},
+        "source": {"enum": ["cli", "ui"]},
+        "stratum": {"anyOf": [{"$ref": "#/$defs/stratum"}, {"type": "null"}], "description": "Copied from the queue item; null for an unsolicited label."},
+        "p_include": {"anyOf": [{"type": "number", "exclusiveMinimum": 0, "maximum": 1}, {"type": "null"}], "description": "Inclusion probability of an AUDIT item (quota / remaining of its species); null for an uncertainty pick or an unsolicited label."},
+        "queue_id": {"anyOf": [{"type": "string", "pattern": "^[0-9a-f]{12}$"}, {"type": "null"}]},
+        "model": {
+          "type": "object",
+          "required": ["conf_max", "n_beams", "best_beam", "group", "in_region"],
+          "properties": {
+            "conf_max": {"type": "number", "minimum": 0, "maximum": 1},
+            "n_beams": {"type": "integer", "minimum": 1, "maximum": 8},
+            "best_beam": {"type": "integer", "minimum": 1, "maximum": 8},
+            "group": {"type": ["string", "null"], "description": "The producer `group` field of the event reports; NULL on most live rows (about 90%), so no logic may depend on it."},
+            "in_region": {"type": ["boolean", "null"]}
+          }
+        },
+        "provenance": {"const": "owner_verdict"},
+        "model_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "1.1.0, optional. model.sha256 of the event's bird / bird_filtered rows (analysis-records 1.3.0), present only when every report of the event carries the same one. The join of a verdict to an event uses it when both sides have it."}
+      },
+      "allOf": [
+        {"$ref": "#/$defs/no_forbidden_keys"},
+        {"if": {"properties": {"verdict": {"const": "wrong"}}, "required": ["verdict"]},
+         "then": {"properties": {"wrong_reason": {"type": "string"}}},
+         "else": {"properties": {"wrong_reason": {"type": "null"}}}},
+        {"if": {"properties": {"corrected_key": {"type": "string"}}, "required": ["corrected_key"]},
+         "then": {"properties": {"wrong_reason": {"const": "other_species"}}}}
+      ]
+    },
+    "review_queue": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/no_forbidden_keys"}],
+      "required": ["k", "v", "queue_id", "t_built", "params", "window", "eligible", "excluded", "depth", "depth_summary", "audit", "items"],
+      "properties": {
+        "k": {"const": "review_queue"},
+        "v": {"const": 1},
+        "queue_id": {"type": "string", "pattern": "^[0-9a-f]{12}$", "description": "First 12 hex of sha256(sorted item event ids + params JSON): equal inputs give an equal id and equal bytes."},
+        "t_built": {"type": "number"},
+        "params": {"type": "object", "required": ["days", "seed", "limit", "per_species_cap", "near_lo", "near_hi", "audit_frac", "audit_per_species_cap", "insect_mode", "audit_frame_n"],
+                   "description": "The inputs of the run plus `audit_frame_n`, the size of the audit sampling frame (eligible events not picked by the uncertainty part).",
+                   "properties": {"audit_frame_n": {"type": "integer", "minimum": 0}, "insect_mode": {"enum": ["exclude", "only"]}}},
+        "window": {"type": "object", "required": ["days", "t0", "t1"]},
+        "eligible": {"type": "object", "required": ["events", "species", "by_stratum"],
+                     "properties": {"events": {"type": "integer", "minimum": 0}, "species": {"type": "integer", "minimum": 0},
+                                    "by_stratum": {"type": "object", "required": ["disagree", "near", "low", "hi", "artifact_probe"]}}},
+        "excluded": {"type": "object", "required": ["speech_label", "speech_tag", "speech_unknown", "non_species", "region", "already_labelled", "insect_excluded", "not_insect"],
+                     "description": "Counts only, by the first failing reason. The speech counters never carry a label name.",
+                     "additionalProperties": {"type": "integer", "minimum": 0}},
+        "depth": {"type": "object", "additionalProperties": {"type": "object", "required": ["near", "disagree", "low", "hi", "artifact_probe"]}},
+        "depth_summary": {"type": "object", "required": ["min_events", "species_union", "species_near_only", "species_ge_min_events"]},
+        "conf_quantiles": {"type": "object", "description": "Per species: n and the p25 / p50 / p75 of the events max confidence (nearest rank): the measured basis for choosing near_lo / near_hi."},
+        "audit": {"type": "object", "required": ["frame_n", "slots", "species"],
+                  "properties": {"species": {"type": "object", "additionalProperties": {"type": "object", "required": ["remaining", "quota"]}}}},
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event_id", "species_key", "common", "t_start_ms", "t_end_ms", "conf_max", "n_beams", "best_beam", "stratum", "selection", "p_include", "flags"],
+            "properties": {
+              "event_id": {"type": "string", "pattern": "^[0-9]{1,16}-[a-z0-9-]{0,60}$"},
+              "species_key": {"$ref": "#/$defs/species_key"},
+              "common": {"type": "string", "minLength": 1},
+              "t_start_ms": {"type": "integer"},
+              "t_end_ms": {"type": "integer"},
+              "conf_max": {"type": "number", "minimum": 0, "maximum": 1},
+              "n_beams": {"type": "integer", "minimum": 1, "maximum": 8},
+              "best_beam": {"type": "integer", "minimum": 1, "maximum": 8},
+              "stratum": {"$ref": "#/$defs/stratum"},
+              "selection": {"enum": ["uncertainty", "probe", "audit"]},
+              "p_include": {"anyOf": [{"type": "number", "exclusiveMinimum": 0, "maximum": 1}, {"type": "null"}]},
+              "flags": {"type": "array", "items": {"enum": ["filtered_overlap", "two_species_beams", "single_beam_high"]}}
+            },
+            "allOf": [{"if": {"properties": {"selection": {"const": "audit"}}, "required": ["selection"]},
+                       "then": {"properties": {"p_include": {"type": "number"}}},
+                       "else": {"properties": {"p_include": {"type": "null"}}}}]
+          }
+        }
+      }
+    }
+  }
+}

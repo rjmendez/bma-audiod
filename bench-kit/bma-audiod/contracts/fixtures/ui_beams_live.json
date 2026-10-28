@@ -1,0 +1,280 @@
+{
+ "window_s": 60,
+ "windows": 3,
+ "newest_age_s": 1.0,
+ "edges_hz": [
+  [
+   50,
+   125
+  ],
+  [
+   125,
+   250
+  ],
+  [
+   250,
+   500
+  ],
+  [
+   500,
+   1000
+  ],
+  [
+   1000,
+   2000
+  ],
+  [
+   2000,
+   4000
+  ],
+  [
+   4000,
+   8000
+  ],
+  [
+   8000,
+   16000
+  ]
+ ],
+ "beam_azimuth_deg": [
+  90,
+  45,
+  0,
+  315,
+  270,
+  225,
+  180,
+  135
+ ],
+ "frame": "array frame (uncalibrated)",
+ "frame_kind": "array",
+ "calibrated": false,
+ "bands": [
+  {
+   "band": 0,
+   "lo_hz": 50,
+   "hi_hz": 125,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  },
+  {
+   "band": 1,
+   "lo_hz": 125,
+   "hi_hz": 250,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  },
+  {
+   "band": 2,
+   "lo_hz": 250,
+   "hi_hz": 500,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  },
+  {
+   "band": 3,
+   "lo_hz": 500,
+   "hi_hz": 1000,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  },
+  {
+   "band": 4,
+   "lo_hz": 1000,
+   "hi_hz": 2000,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  },
+  {
+   "band": 5,
+   "lo_hz": 2000,
+   "hi_hz": 4000,
+   "power_mean_db": [
+    -14.69,
+    -30.0,
+    -14.69,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    5.65,
+    -9.66,
+    5.65,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66
+   ],
+   "ring_power_mean_db": -20.34,
+   "leader_beam": 1,
+   "contrast_db": 15.31
+  },
+  {
+   "band": 6,
+   "lo_hz": 4000,
+   "hi_hz": 8000,
+   "power_mean_db": [
+    -14.69,
+    -30.0,
+    -14.69,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    5.65,
+    -9.66,
+    5.65,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66,
+    -9.66
+   ],
+   "ring_power_mean_db": -20.34,
+   "leader_beam": 1,
+   "contrast_db": 15.31
+  },
+  {
+   "band": 7,
+   "lo_hz": 8000,
+   "hi_hz": 16000,
+   "power_mean_db": [
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0,
+    -30.0
+   ],
+   "rel_ring_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "ring_power_mean_db": -30.0,
+   "leader_beam": 1,
+   "contrast_db": 0.0
+  }
+ ],
+ "zero_frac_mean": 0.1667,
+ "note": "A persistent offset that stays with one beam number when the pattern is rotated is a channel gain difference, not a direction. Angles are DSP-frame fallback values until a calibration is stored."
+}

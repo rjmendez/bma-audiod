@@ -1,0 +1,4 @@
+# Python packages for the windows CI jobs (setup-python cache: pip keys on this file).
+numpy
+scipy
+jsonschema

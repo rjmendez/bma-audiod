@@ -1,0 +1,7 @@
+{
+ "type": "urn:bma-ui:problem:unauthorized",
+ "title": "Authentication required",
+ "status": 401,
+ "code": "unauthorized",
+ "detail": "send the dashboard token (HTTP Basic password, or open /?token=...)"
+}

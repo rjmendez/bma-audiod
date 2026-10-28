@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:clips",
+  "title": "wildlife clips (analysis/clips/)",
+  "description": "Written by analysis/clips.py (analysis/host.py): a spectrogram PNG and a signature JSON (VISUAL ONLY, not invertible to speech: nothing below 3.5 kHz, 50 ms columns) for a WILDLIFE detection whose BirdNET event confidence is strictly above the configured --clip-min-conf (default 0.85), never near speech; and, ONLY with the explicit --clip-audio flag (off by default: owner: I cannot keep voice recordings), also a lossless audio clip. `index.jsonl` is append-only (clip_stored, then tombstones; a reader folds by `id`, a later line overrides an earlier one). With --clip-audio the audio is deleted at capture age 24 h (`audio_expired` true, `audio_file` null); in the default mode `audio_stored` is false and there never is an audio file; the PNG, the JSON and the index lines (no audio) stay 14 days. Receivers MUST ignore unknown fields and MUST NOT assume the audio file exists. No path, user name or drive letter appears in any record: file names are relative to the clips directory.",
+  "x-contract-version": "1.3.0",
+  "x-discriminator": {"field": "k", "map": {"clip_stored": "clip_stored", "clip_audio_expired": "tombstone_audio_expired", "clip_evicted": "tombstone_evicted", "clip_sidecar_expired": "tombstone_sidecar_expired", "clip": "clip"}},
+  "x-files": {
+    "index.jsonl": ["clip_stored", "clip_audio_expired", "clip_evicted", "clip_sidecar_expired"],
+    "clips_index.jsonl": ["clip_stored", "clip_audio_expired", "clip_evicted", "clip_sidecar_expired"]
+  },
+  "oneOf": [{"$ref": "#/$defs/clip_stored"}, {"$ref": "#/$defs/tombstone_audio_expired"}, {"$ref": "#/$defs/tombstone_evicted"},
+            {"$ref": "#/$defs/tombstone_sidecar_expired"}, {"$ref": "#/$defs/clip"}],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[0-9]{13}-[a-z0-9]{1,24}-b[1-8]$", "description": "<capture epoch milliseconds, 13 digits>-<species slug a-z0-9, at most 24>-b<beam 1..8>. The retention age of the audio is measured from the number in the id."},
+    "agree": {"type": "integer", "minimum": 1, "maximum": 8, "description": "Number of distinct beams that reported the species within the event (= len(beams_reported) of the sidecar). The writer stores a clip only when this is at least --clip-min-beams (default 2; 1 turns the rule off), so a record written with the default has beams_agreeing >= 2."},
+    "rel": {"type": "string", "pattern": "^[0-9]{8}/[0-9]{13}-[a-z0-9]{1,24}-b[1-8]\\.(flac|wav|png|json)$", "description": "Relative to the clips directory: <UTC day YYYYMMDD>/<id>.<ext>. Never an absolute path."},
+    "species": {"type": "object", "required": ["scientific", "common"], "properties": {"scientific": {"type": ["string", "null"]}, "common": {"type": ["string", "null"]}}},
+    "group": {"enum": ["bird", "insect", "amphibian", "mammal", "other-bio"], "description": "Never null or mechanical: such detections are not stored."},
+    "conf": {"type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "The MAX confidence of the event, strictly above the configured --clip-min-conf (default 0.85; the writer accepts 0.05 to 1). The threshold is not recorded: a reader must not assume 0.85."},
+    "clip_stored": {
+      "description": "Appended once per stored clip, after the audio, PNG and JSON are in place.",
+      "type": "object",
+      "required": ["k", "v", "id", "t_start", "t_end", "species", "group", "confidence_max", "beam", "beams_agreeing", "in_region", "audio_stored", "audio_file", "audio_bytes", "codec", "png", "json", "duration_s", "model_version", "provenance"],
+      "properties": {
+        "k": {"const": "clip_stored"}, "v": {"const": 1}, "id": {"$ref": "#/$defs/id"},
+        "t_start": {"type": "number"}, "t_end": {"type": "number"}, "species": {"$ref": "#/$defs/species"}, "group": {"$ref": "#/$defs/group"},
+        "confidence_max": {"$ref": "#/$defs/conf"}, "beam": {"type": "integer", "minimum": 1, "maximum": 8},
+        "beams_agreeing": {"$ref": "#/$defs/agree"},
+        "in_region": {"type": ["boolean", "null"], "description": "false: the location filter marked the species out of region (stored under the same > --clip-min-conf rule); null: no location filter."},
+        "audio_stored": {"type": "boolean", "description": "false (the default of the analyzer): VISUAL-ONLY, no audio file was ever written for this clip (audio_file and codec null, audio_bytes 0). true: --clip-audio was on."},
+        "audio_file": {"anyOf": [{"$ref": "#/$defs/rel"}, {"type": "null"}]}, "audio_bytes": {"type": "integer", "minimum": 0}, "codec": {"enum": ["flac", "wav", null]},
+        "png": {"anyOf": [{"$ref": "#/$defs/rel"}, {"type": "null"}], "description": "null when the PNG could not be written."}, "json": {"$ref": "#/$defs/rel"},
+        "duration_s": {"type": "number", "minimum": 1, "maximum": 12.0}, "model_version": {"type": ["string", "null"]}, "provenance": {"const": "model_opinion"}
+      },
+      "allOf": [{"if": {"properties": {"audio_stored": {"const": true}}, "required": ["audio_stored"]},
+                 "then": {"properties": {"audio_file": {"$ref": "#/$defs/rel"}, "codec": {"enum": ["flac", "wav"]}, "audio_bytes": {"minimum": 1}}},
+                 "else": {"properties": {"audio_file": {"type": "null"}, "codec": {"type": "null"}, "audio_bytes": {"const": 0}}}}]
+    },
+    "tombstone_audio_expired": {
+      "description": "The audio file was deleted (reason age: capture age reached --audio-retention-h; size_cap: the safety cap; reconcile: the file was found missing). The sidecars stay.",
+      "type": "object", "required": ["k", "v", "id", "t", "reason"],
+      "properties": {"k": {"const": "clip_audio_expired"}, "v": {"const": 1}, "id": {"$ref": "#/$defs/id"}, "t": {"type": "number"}, "reason": {"enum": ["age", "size_cap", "reconcile"]}}
+    },
+    "tombstone_evicted": {
+      "description": "All files of the clip were deleted because a better clip of the same species took its place in the per-species-per-hour cap.",
+      "type": "object", "required": ["k", "v", "id", "t", "reason"],
+      "properties": {"k": {"const": "clip_evicted"}, "v": {"const": 1}, "id": {"$ref": "#/$defs/id"}, "t": {"type": "number"}, "reason": {"enum": ["species_hour_cap", "human_voice"]}}
+    },
+    "tombstone_sidecar_expired": {
+      "description": "The PNG and JSON (and any audio still present) were deleted: age reached --sidecar-retention-days, or the sidecar size cap. After this line only index lines remain.",
+      "type": "object", "required": ["k", "v", "id", "t", "reason"],
+      "properties": {"k": {"const": "clip_sidecar_expired"}, "v": {"const": 1}, "id": {"$ref": "#/$defs/id"}, "t": {"type": "number"}, "reason": {"enum": ["age", "size_cap"]}}
+    },
+    "clip": {
+      "description": "<id>.json: everything about one clip, rewritten atomically (tmp + replace) once when the audio expires. `signatures` and `envelope` are computed from the stored audio at capture time.",
+      "type": "object",
+      "required": ["k", "v", "id", "t_start", "t_end", "t_start_utc", "t_end_utc", "species", "group", "confidence_max", "reports", "beam", "beams_reported", "beams_agreeing",
+                   "in_region", "model", "model_version", "provenance", "sample_rate", "channels", "subtype", "samples", "duration_s", "pre_roll_s", "post_roll_s", "capped",
+                   "ring_truncated", "start_sample", "speech_guard", "audio_stored", "audio_expired", "audio_file", "codec", "png", "json", "audio_bytes", "spectrogram", "signatures", "envelope"],
+      "properties": {
+        "k": {"const": "clip"}, "v": {"const": 1}, "id": {"$ref": "#/$defs/id"},
+        "t_start": {"type": "number"}, "t_end": {"type": "number"},
+        "t_start_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"},
+        "t_end_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"},
+        "species": {"$ref": "#/$defs/species"}, "group": {"$ref": "#/$defs/group"}, "confidence_max": {"$ref": "#/$defs/conf"},
+        "reports": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["t_end", "confidence", "beam", "in_region"],
+                    "properties": {"t_end": {"type": "number"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "beam": {"type": "integer", "minimum": 1, "maximum": 8}, "in_region": {"type": ["boolean", "null"]}}}},
+        "beam": {"type": "integer", "minimum": 1, "maximum": 8, "description": "The beam of the highest-confidence report: the only beam stored."},
+        "beams_reported": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 8}, "minItems": 1, "uniqueItems": true, "description": "Every distinct beam (1-8) that reported the species within the event, sorted; not limited to the stored beam."},
+        "beams_agreeing": {"$ref": "#/$defs/agree"},
+        "in_region": {"type": ["boolean", "null"]}, "model": {"const": "BirdNET"}, "model_version": {"type": ["string", "null"]}, "provenance": {"const": "model_opinion"},
+        "sample_rate": {"const": 48000}, "channels": {"const": 1}, "subtype": {"const": "PCM_16"},
+        "samples": {"type": "integer", "minimum": 48000, "maximum": 576000}, "duration_s": {"type": "number", "minimum": 1, "maximum": 12.0},
+        "pre_roll_s": {"type": "number", "minimum": 0}, "post_roll_s": {"type": "number", "minimum": 0},
+        "capped": {"type": "boolean", "description": "The event was longer than --clip-max-s; the clip is the max-length part centred on the peak window."},
+        "ring_truncated": {"type": "boolean", "description": "Pre- or post-roll shorter than configured because the RAM ring no longer held it (not set when capped)."},
+        "start_sample": {"type": "integer", "minimum": 0, "description": "Absolute stream sample index (the board's sample clock) of the first stored sample."},
+        "speech_guard": {"type": "object", "required": ["tags_windows", "max_speech_p", "guard_s", "speech_p_threshold", "human_labels_seen"],
+                         "properties": {"tags_windows": {"type": "integer", "minimum": 1}, "max_speech_p": {"type": "number", "minimum": 0, "maximum": 1},
+                                        "guard_s": {"type": "number"}, "speech_p_threshold": {"type": "number"}, "human_labels_seen": {"const": false}}},
+        "audio_stored": {"type": "boolean", "description": "false (default): visual-only, audio never existed: audio_expired is false and not applicable, audio_file and codec are null, audio_bytes 0. true: --clip-audio was on and the rules of audio_expired apply."},
+        "audio_expired": {"type": "boolean"}, "audio_expired_t": {"type": "number"}, "audio_expired_reason": {"enum": ["age", "size_cap", "reconcile"]},
+        "audio_file": {"anyOf": [{"$ref": "#/$defs/rel"}, {"type": "null"}], "description": "null when audio_stored is false or audio_expired is true."},
+        "codec": {"enum": ["flac", "wav", null]}, "png": {"anyOf": [{"$ref": "#/$defs/rel"}, {"type": "null"}]}, "json": {"$ref": "#/$defs/rel"}, "audio_bytes": {"type": "integer", "minimum": 0},
+        "spectrogram": {"type": "object", "description": "The PNG: VISUAL ONLY, not invertible to speech. 96 log-spaced rows from 3500 Hz (nothing below the floor is represented), one column per 50 ms (non-overlapping frames, columns = (samples - 4096) // 2400: 238 for a 12 s clip; the first and last 43 ms are the filter run-in), 8-bit magnitude, no phase.",
+                        "required": ["rows", "col_s", "columns", "f_lo_hz", "f_hi_hz", "scale"],
+                        "properties": {"rows": {"const": 96}, "col_s": {"const": 0.05}, "columns": {"type": "integer", "minimum": 18, "maximum": 238}, "f_lo_hz": {"const": 3500.0}, "f_hi_hz": {"const": 24000.0}, "scale": {"enum": ["log", "pcen"], "description": "log: pixel = dB level mapped db_lo..db_hi. pcen (1.2.0, --clip-pcen): pixel = round(clip(PCEN / vmax * 255)), PCEN of the per-row linear power (amp**2 * power_scale), column step col_s."}, "db_lo": {"const": -110.0}, "db_hi": {"const": -30.0},
+                                       "pcen": {"type": "object", "description": "PCEN parameters of the render (scale pcen only). s = smoothing coefficient for time_constant_s at 1 / col_s frames per second.",
+                                                "required": ["time_constant_s", "s", "alpha", "delta", "r", "eps", "power_scale", "init", "vmax"],
+                                                "properties": {"time_constant_s": {"type": "number", "exclusiveMinimum": 0}, "s": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}, "alpha": {"type": "number", "minimum": 0},
+                                                               "delta": {"type": "number", "exclusiveMinimum": 0}, "r": {"type": "number", "exclusiveMinimum": 0}, "eps": {"type": "number", "exclusiveMinimum": 0},
+                                                               "power_scale": {"type": "number", "exclusiveMinimum": 0}, "init": {"enum": ["first", "librosa"]}, "vmax": {"type": "number", "exclusiveMinimum": 0}}}},
+                        "allOf": [{"if": {"properties": {"scale": {"const": "pcen"}}, "required": ["scale"]}, "then": {"required": ["pcen"], "not": {"anyOf": [{"required": ["db_lo"]}, {"required": ["db_hi"]}]}}, "else": {"required": ["db_lo", "db_hi"], "not": {"required": ["pcen"]}}}]},
+        "signatures": {"$ref": "#/$defs/signatures"},
+        "envelope": {"type": "object", "description": "Coarse level track of the signal above 3.5 kHz: RMS per 50 ms frame (20 values per second), dB re full scale. No waveform, no min/max pairs.",
+                     "required": ["n", "step_s", "rms_db"], "properties": {"n": {"type": "integer", "minimum": 18, "maximum": 238}, "step_s": {"const": 0.05},
+                     "rms_db": {"type": "array", "minItems": 18, "maxItems": 238, "items": {"type": "number", "minimum": -100, "maximum": 0.1}}}}
+      },
+      "allOf": [{"if": {"properties": {"audio_stored": {"const": true}}, "required": ["audio_stored"]},
+                 "then": {"allOf": [{"if": {"properties": {"audio_expired": {"const": true}}, "required": ["audio_expired"]}, "then": {"properties": {"audio_file": {"type": "null"}}},
+                                     "else": {"properties": {"audio_file": {"$ref": "#/$defs/rel"}}}},
+                                    {"properties": {"codec": {"enum": ["flac", "wav"]}}}]},
+                 "else": {"properties": {"audio_expired": {"const": false}, "audio_file": {"type": "null"}, "codec": {"type": "null"}, "audio_bytes": {"const": 0}}}}]
+    },
+    "stat": {"type": "object", "required": ["mean", "std"], "properties": {"mean": {"type": "number"}, "std": {"type": "number"}}},
+    "signatures": {
+      "type": "object",
+      "required": ["duration_s", "peak_dbfs", "rms_dbfs", "snr_db", "dominant_hz", "dominant_step_s", "centroid_hz", "bandwidth_hz", "band_edges_hz", "band_db", "onsets_s", "ioi", "beam_energies_db", "beam_azimuth_deg"],
+      "properties": {
+        "duration_s": {"type": "number"}, "peak_dbfs": {"type": "number", "maximum": 0.01}, "rms_dbfs": {"type": "number", "maximum": 0.01},
+        "snr_db": {"type": "number", "description": "clip RMS over the RMS of the quietest 10 % of 50 ms frames (floored at -100 dBFS), all of the signal above 3.5 kHz."},
+        "dominant_hz": {"type": "array", "minItems": 9, "maxItems": 119, "description": "Per 100 ms frame, above 3.5 kHz only: 10 values per second.", "items": {"type": "number", "minimum": 0, "maximum": 24000}}, "dominant_step_s": {"type": "number"},
+        "centroid_hz": {"$ref": "#/$defs/stat"}, "bandwidth_hz": {"$ref": "#/$defs/stat"},
+        "band_edges_hz": {"const": [4000, 8000, 16000, 24000]},
+        "band_db": {"type": "array", "items": {"type": "number", "minimum": -200, "maximum": 0.01}, "minItems": 3, "maxItems": 3},
+        "onsets_s": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "ioi": {"type": "object", "required": ["n", "mean_s", "median_s", "cv", "rate_hz"],
+                "properties": {"n": {"type": "integer", "minimum": 0}, "mean_s": {"type": ["number", "null"]}, "median_s": {"type": ["number", "null"]}, "cv": {"type": ["number", "null"]}, "rate_hz": {"type": ["number", "null"]}}},
+        "beam_energies_db": {"type": "array", "items": {"type": "number"}, "minItems": 8, "maxItems": 8},
+        "beam_azimuth_deg": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 8, "maxItems": 8}
+      }
+    }
+  }
+}

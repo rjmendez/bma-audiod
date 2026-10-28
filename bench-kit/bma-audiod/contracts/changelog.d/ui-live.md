@@ -1,0 +1,3 @@
+## ui-live 1.0.0 - 2026-10-28 (new; ui/ws.py, GET /api/v2/live with --ui-next)
+
+- ui-live 1.0.0 - new: the dashboard's standard-tier spectrum rows pushed over a WebSocket (RFC 6455 v13, stdlib): text `hello`, a 60 s backlog and then one 438-byte binary `BMW1` frame per row (24-byte header, 9 beams x 46 uint8; flags gated / gap / zero / beam absent), text `reset` when rows were re-gated, ping / pong, masked client control frames only (1002 / 1003 / 1009 closes), 8 sockets at most, 5 s write timeout, same login, Origin check. Schema `ui_live.schema.json` (text frames), reference `ref_binary.py` (`build_live`, `parse_live`, `ws_*`), fixtures `ui_live_examples.json` (tools/make_live_fixtures.py). Rows only: no audio, no label, no event.

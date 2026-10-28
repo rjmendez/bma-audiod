@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bma:contract:acoustic-indices",
+  "title": "acoustic_indices records (analysis/indices.jsonl)",
+  "description": "One record per closed epoch-aligned interval (default 300 s) from the analyzer's `indices` plugin (analysis/indices.py): standard ecoacoustic indices of the 8-beam mean signal over the interval's 5 s windows, as p10 / p50 / p90 over the used windows. Windows the tagger flagged as speech are excluded (counted, their numbers never stored), dead and non-finite windows are counted and excluded, and an interval without a used window writes no record. Descriptive soundscape-state numbers: they correlate weakly with biodiversity and a loud insect chorus saturates them (see the spec). Metadata only; no audio. Receivers MUST ignore unknown fields and skip a record whose `v` they do not know.",
+  "x-contract-version": "1.0.0",
+  "x-discriminator": {"field": "k", "map": {"acoustic_indices": "acoustic_indices"}},
+  "x-files": {"indices.jsonl": ["acoustic_indices"]},
+  "oneOf": [{"$ref": "#/$defs/acoustic_indices"}],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "band": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 2, "maxItems": 2},
+    "unit_stat": {
+      "description": "p10 / p50 / p90 of one index over the used windows of the interval (linear interpolation, so p10 <= p50 <= p90); the other *_stat types differ only in their range.",
+      "type": "object", "required": ["p10", "p50", "p90"],
+      "properties": {"p10": {"type": "number", "minimum": 0, "maximum": 1}, "p50": {"type": "number", "minimum": 0, "maximum": 1}, "p90": {"type": "number", "minimum": 0, "maximum": 1}}
+    },
+    "ndsi_stat": {
+      "type": "object", "required": ["p10", "p50", "p90"],
+      "properties": {"p10": {"type": "number", "minimum": -1, "maximum": 1}, "p50": {"type": "number", "minimum": -1, "maximum": 1}, "p90": {"type": "number", "minimum": -1, "maximum": 1}}
+    },
+    "db_stat": {
+      "type": "object", "required": ["p10", "p50", "p90"],
+      "properties": {"p10": {"type": "number", "minimum": -200, "maximum": 0}, "p50": {"type": "number", "minimum": -200, "maximum": 0}, "p90": {"type": "number", "minimum": -200, "maximum": 0}}
+    },
+    "nonneg_stat": {
+      "type": "object", "required": ["p10", "p50", "p90"],
+      "properties": {"p10": {"type": "number", "minimum": 0}, "p50": {"type": "number", "minimum": 0}, "p90": {"type": "number", "minimum": 0}}
+    },
+    "acoustic_indices": {
+      "type": "object",
+      "required": ["k", "v", "t", "t0", "span_s", "win_s", "hop_s", "win_total", "win_used", "win_speech", "win_silent", "win_nonfinite", "win_untagged", "speech_gate", "params", "indices"],
+      "properties": {
+        "k": {"const": "acoustic_indices"},
+        "v": {"const": 1, "description": "Record format major version."},
+        "t": {"type": "number", "minimum": 0, "description": "End of the interval, Unix seconds (t0 + span_s)."},
+        "t0": {"type": "number", "minimum": 0, "description": "Start of the epoch-aligned interval: a multiple of span_s."},
+        "span_s": {"type": "number", "exclusiveMinimum": 0},
+        "partial": {"const": true, "description": "Optional, present only when true: the interval is incomplete (flushed at analyzer shutdown, or the analyzer started late in it); win_total says how many windows it holds."},
+        "win_s": {"type": "number", "exclusiveMinimum": 0, "description": "Length of one analysed window in seconds (5)."},
+        "hop_s": {"type": "number", "exclusiveMinimum": 0, "description": "Seconds between window starts (default 30)."},
+        "win_total": {"$ref": "#/$defs/count"}, "win_used": {"type": "integer", "minimum": 1, "description": "Windows in the aggregate; at least 1 because an interval without one writes no record."},
+        "win_speech": {"$ref": "#/$defs/count"}, "win_silent": {"$ref": "#/$defs/count"}, "win_nonfinite": {"$ref": "#/$defs/count"},
+        "win_untagged": {"$ref": "#/$defs/count", "description": "Windows excluded because the tagger windows did not cover them end to end (speech gate fails closed); 0 when speech_gate is false."},
+        "speech_gate": {"type": "boolean", "description": "true: the tagger's speech flags were applied; false: the plugin ran without the tagger (--indices-without-speech-gate) and nothing was excluded as speech."},
+        "params": {
+          "type": "object",
+          "required": ["fs", "mix", "frame", "df_hz", "aci_band_hz", "entropy_band_hz", "bi_band_hz", "ndsi_anthro_hz", "ndsi_bio_hz", "chorus_band_hz", "dead_dbfs"],
+          "properties": {
+            "fs": {"const": 48000}, "mix": {"const": "mean of 8 beams"}, "frame": {"const": "hann 480 no overlap"}, "df_hz": {"const": 100.0},
+            "aci_band_hz": {"$ref": "#/$defs/band"}, "entropy_band_hz": {"$ref": "#/$defs/band"}, "bi_band_hz": {"$ref": "#/$defs/band"},
+            "ndsi_anthro_hz": {"$ref": "#/$defs/band"}, "ndsi_bio_hz": {"$ref": "#/$defs/band"}, "chorus_band_hz": {"$ref": "#/$defs/band"},
+            "dead_dbfs": {"type": "number", "maximum": 0}
+          }
+        },
+        "indices": {
+          "type": "object", "required": ["aci", "hf", "ht", "h", "bi", "ndsi", "level_dbfs", "chorus_dbfs"],
+          "properties": {
+            "aci": {"$ref": "#/$defs/nonneg_stat"}, "hf": {"$ref": "#/$defs/unit_stat"}, "ht": {"$ref": "#/$defs/unit_stat"}, "h": {"$ref": "#/$defs/unit_stat"},
+            "bi": {"$ref": "#/$defs/nonneg_stat"}, "ndsi": {"$ref": "#/$defs/ndsi_stat"},
+            "level_dbfs": {"$ref": "#/$defs/db_stat"}, "chorus_dbfs": {"$ref": "#/$defs/db_stat"}
+          }
+        }
+      }
+    }
+  }
+}

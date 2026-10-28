@@ -1,0 +1,39 @@
+{
+ "k": "daily_summary",
+ "v": 1,
+ "days": {
+  "20251026": {
+   "restarts": 1,
+   "windows": {
+    "dsp": 3,
+    "spatial": 1,
+    "tags": 1,
+    "birds": 2
+   },
+   "records": {
+    "dsp.dsp": 3,
+    "dsp.transient": 3,
+    "spatial.spatial": 1,
+    "spatial.source": 1,
+    "tags.tags": 1,
+    "birds.bird": 1
+   },
+   "errors": {
+    "clap": 1
+   },
+   "dropped": {
+    "tags": 4
+   },
+   "audio_s": 3.0,
+   "ring_reset_s": 5.0,
+   "birds_windows": 2,
+   "birds_no_beam_over_gate": 1,
+   "tags_speech_suppressed": 1,
+   "spatial_directional": 1,
+   "rx_datagrams": 1000,
+   "rx_bad": 1,
+   "rx_gaps": 8,
+   "uptime_s": 5.0
+  }
+ }
+}

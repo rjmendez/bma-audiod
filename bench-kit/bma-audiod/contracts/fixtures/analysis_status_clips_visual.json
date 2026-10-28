@@ -1,0 +1,116 @@
+{
+ "started": 1792886220.8377147,
+ "device": "cuda:1",
+ "plugins": {
+  "dsp": {
+   "enabled": true,
+   "windows": 2673,
+   "records": 3369,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.3116856,
+   "last_error": null
+  },
+  "spatial": {
+   "enabled": true,
+   "windows": 2673,
+   "records": 2673,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.3116856,
+   "last_error": null
+  },
+  "tags": {
+   "enabled": true,
+   "windows": 447,
+   "records": 447,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.1972272,
+   "last_error": null,
+   "speech_fraction": 0.0
+  },
+  "clap": {
+   "enabled": true,
+   "windows": 253,
+   "records": 253,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889708.1859052,
+   "last_error": null
+  },
+  "birds": {
+   "enabled": true,
+   "windows": 611,
+   "records": 28,
+   "errors": 0,
+   "dropped": 0,
+   "last_t": 1792889712.1972272,
+   "last_error": null
+  },
+  "novelty": {
+   "enabled": true,
+   "note": "fed by tags embeddings (non-speech only)"
+  }
+ },
+ "rx": {
+  "datagrams": 5111376,
+  "bad": 0,
+  "gaps": 22960
+ },
+ "t": 1792889713.1833825,
+ "uptime_s": 3492.0,
+ "contiguous_s": 10.0,
+ "embeddings_stored": 446,
+ "audio_written": false,
+ "meta": {
+  "write_errors": 0,
+  "rotate_fallbacks": 0,
+  "taxa_missing": 0,
+  "taxa_unmapped": 3,
+  "config_write_errors": 0,
+  "rollup_errors": 0,
+  "daily_flush_errors": 0,
+  "history_dropped": 0,
+  "clips_skipped_not_wildlife": 0,
+  "clips_skipped_low_conf": 0,
+  "clips_skipped_single_beam": 0,
+  "clips_skipped_no_group": 0,
+  "clips_skipped_excluded": 0,
+  "clips_skipped_out_of_region": 0,
+  "clips_skipped_speech": 0,
+  "clips_skipped_human_label": 0,
+  "clips_skipped_tagger_unavailable": 0,
+  "clips_skipped_guard_hole": 0,
+  "clips_skipped_no_verdict": 0,
+  "clips_skipped_ring_gap": 0,
+  "clips_dropped_queue": 0,
+  "clips_dropped_pending_full": 0,
+  "clips_dropped_cap": 0,
+  "clips_evicted_cap": 0,
+  "clips_evicted_size": 0,
+  "clips_evicted_sidecar_size": 0,
+  "clips_purged_human": 0,
+  "clips_out_of_region_stored": 0,
+  "clips_stored": 1,
+  "clip_write_errors": 0,
+  "clip_sidecar_errors": 0,
+  "clip_index_errors": 0,
+  "clip_service_errors": 0,
+  "audio_expired": 0,
+  "audio_expire_retry": 0,
+  "orphans_deleted": 0,
+  "sweep_runs": 0,
+  "sweep_errors": 0
+ },
+ "clips": {
+  "enabled": true,
+  "audio": false,
+  "stored": 1,
+  "pending": 0,
+  "queue_depth": 0,
+  "audio_files": 0,
+  "audio_bytes": 0,
+  "last_stored_t": 1791997856.5
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "calibrated": false,
+ "frame": "array frame (uncalibrated)",
+ "beam_azimuth_deg": [
+  90,
+  45,
+  0,
+  315,
+  270,
+  225,
+  180,
+  135
+ ],
+ "north_reference": null,
+ "frame_kind": "array",
+ "provisional": false,
+ "panel_up_dsp_azimuth_deg": null,
+ "measured_at": null,
+ "board_reachable": true,
+ "board_error": null,
+ "note": "Fallback layout: audio beam k at entry k of these DSP-frame azimuths; no calibration is stored, so no physical direction is known."
+}
